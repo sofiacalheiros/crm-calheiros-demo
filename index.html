@@ -1,0 +1,373 @@
+<!DOCTYPE html>
+<html lang="pt-PT">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#233F96">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="icon-192.png">
+<title>CRM Calheiros</title>
+<meta name="apple-mobile-web-app-title" content="CRM Calheiros">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@75..100,400..800&display=swap" rel="stylesheet">
+<style>
+:root{
+  /* Cores do logotipo Calheiros (logotipo.png): azul #233F96, azul-claro #29ABE2, amarelo #F4EC1F, vermelho #EC1C24 */
+  --logo-fundo:transparent; --logo-pad:0;
+  --div-pos:#2F55C2; --div-neg:#D42A2A; --div-eixo:#9AA5B5; --sobe-bg:#E3EAFB; --sobe-ink:#1E3A8A;
+  --bg:#EEF1F6; --surface:#FFFFFF; --surface-2:#F4F6FA; --ink:#1D1D1B; --ink-2:#56606E; --line:#D9DFE8;
+  --brand:#233F96; --brand-ink:#FFFFFF; --accent:#29ABE2; --danger:#C8161D; --ok:#2E7D4F;
+  --f-lead:#7D899B; --f-qualificado:#7FCDEE; --f-amostra:#29ABE2; --f-orcamento:#1A86B8; --f-negociacao:#8E1016; --f-ganho:#2E7D4F; --f-perdido:#EC1C24;
+  --a1-bg:#FFF6B8; --a1-ink:#6B5E00; --a2-bg:#FFE1D6; --a2-ink:#B3311A; --amarelo:#F4EC1F;
+  --radius-s:6px; --radius-m:12px; --radius-l:20px;
+  --font:"Archivo", "Helvetica Neue", Arial, system-ui, sans-serif;
+  box-sizing:border-box;
+  padding-top:env(safe-area-inset-top,0px);
+  padding-bottom:env(safe-area-inset-bottom,0px);
+  color-scheme:light;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+  --bg:#0E1422; --surface:#161E30; --surface-2:#1D2740; --ink:#EEF2F8; --ink-2:#A3AEC2; --line:#2B3852;
+  --brand:#8FB0FF; --brand-ink:#0E1422; --accent:#4CC3F0; --danger:#FF6B70; --ok:#6CCB8E;
+  --f-lead:#6F7B90; --f-qualificado:#7FCDEE; --f-amostra:#4CC3F0; --f-orcamento:#4CC3F0; --f-negociacao:#FF9DA0; --f-ganho:#6CCB8E; --f-perdido:#FF5A60;
+  --a1-bg:#3A3510; --a1-ink:#F4EC1F; --a2-bg:#43201A; --a2-ink:#FF9A80; --amarelo:#F4EC1F;
+  --logo-fundo:#FFFFFF; --logo-pad:3px 8px;
+  --div-pos:#5B82E6; --div-neg:#E5484D; --div-eixo:#56637A; --sobe-bg:#1E2A4A; --sobe-ink:#A9C1FF;
+    color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#0E1422; --surface:#161E30; --surface-2:#1D2740; --ink:#EEF2F8; --ink-2:#A3AEC2; --line:#2B3852;
+  --brand:#8FB0FF; --brand-ink:#0E1422; --accent:#4CC3F0; --danger:#FF6B70; --ok:#6CCB8E;
+  --f-lead:#6F7B90; --f-qualificado:#7FCDEE; --f-amostra:#4CC3F0; --f-orcamento:#4CC3F0; --f-negociacao:#FF9DA0; --f-ganho:#6CCB8E; --f-perdido:#FF5A60;
+  --a1-bg:#3A3510; --a1-ink:#F4EC1F; --a2-bg:#43201A; --a2-ink:#FF9A80; --amarelo:#F4EC1F;
+  --logo-fundo:#FFFFFF; --logo-pad:3px 8px;
+  --div-pos:#5B82E6; --div-neg:#E5484D; --div-eixo:#56637A; --sobe-bg:#1E2A4A; --sobe-ink:#A9C1FF;
+  color-scheme:dark;
+}
+*,*::before,*::after{box-sizing:inherit}
+/* Telemóvel: a página não "flutua" (sem efeito elástico, sem zoom com dois toques, nunca mais larga que o ecrã) */
+html{height:100%;scroll-padding-top:env(safe-area-inset-top,0px);-webkit-text-size-adjust:100%;text-size-adjust:100%;touch-action:manipulation;overscroll-behavior:none}
+html.folha-aberta,html.folha-aberta body{overflow:hidden}
+html.folha-aberta .top{position:fixed;top:env(safe-area-inset-top,0px);left:0;right:0}
+body{margin:0;min-height:100%;overscroll-behavior:none;overflow-x:hidden;width:100%;background:var(--bg);color:var(--ink);font-family:var(--font);font-size:16px;line-height:1.45;-webkit-font-smoothing:antialiased}
+button,input,select,textarea{font:inherit;color:inherit}
+button{cursor:pointer}
+:focus-visible{outline:2px solid var(--brand);outline-offset:2px}
+.num{font-variant-numeric:tabular-nums}
+.muted{color:var(--ink-2)}
+img{max-width:100%}
+a{color:var(--brand)}
+
+/* Cabeçalho */
+.top{position:sticky;top:env(safe-area-inset-top,0px);z-index:20;background:var(--bg);border-bottom:1px solid var(--line)}
+.top-in{max-width:1200px;margin:0 auto;display:flex;align-items:center;gap:12px;padding:10px 16px}
+/* Logotipo Calheiros (logotipo.png, fundo transparente). No modo escuro fica sobre fundo branco, porque o texto é preto. */
+.logo-img{display:block;height:36px;width:auto;margin-right:auto;background:var(--logo-fundo);border-radius:8px;padding:var(--logo-pad)}
+.login-logo-img{height:72px;margin:0 0 14px}
+.chip{display:inline-flex;align-items:center;gap:8px;border:1px solid var(--line);background:var(--surface);border-radius:999px;padding:5px 12px 5px 5px;font-size:14px}
+.av{width:28px;height:28px;border-radius:50%;display:inline-grid;place-items:center;background:var(--brand);color:var(--brand-ink);font-size:12px;font-weight:700;flex:none}
+.toggle{display:inline-flex;align-items:center;gap:8px;font-size:14px;color:var(--ink-2);user-select:none}
+.toggle input{accent-color:var(--brand);width:18px;height:18px}
+
+.banner{max-width:1200px;margin:12px auto 0;padding:10px 14px;border-radius:var(--radius-m);background:var(--surface-2);border:1px dashed var(--line);font-size:14px;color:var(--ink-2)}
+.banner[hidden]{display:none}
+main{max-width:1200px;margin:0 auto;padding:16px 16px 112px;overflow-x:clip}
+.view[hidden]{display:none}
+h1{font-size:30px;font-stretch:82%;font-weight:750;letter-spacing:-.015em;line-height:1.1;margin:4px 0 4px}
+h2{font-size:19px;font-weight:700;margin:28px 0 10px;letter-spacing:-.005em}
+.sub{margin:0 0 18px;color:var(--ink-2)}
+.sec-h{display:flex;align-items:baseline;justify-content:space-between;gap:12px}
+.sec-h h2{flex:1}
+.sec-h .linkbtn{white-space:nowrap;font-weight:600}
+
+/* Início */
+.kpis{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:1px;background:var(--line);border:1px solid var(--line);border-radius:var(--radius-m);overflow:hidden}
+.kpi{background:var(--surface);padding:14px 16px}
+.kpi b{display:block;font-size:24px;font-stretch:85%;font-weight:750;letter-spacing:-.01em}
+.kpi span{font-size:13px;color:var(--ink-2)}
+@media (min-width:760px){.kpis{grid-template-columns:repeat(4,1fr)}}
+.funil{margin-top:22px;background:var(--surface);border:1px solid var(--line);border-radius:var(--radius-m);padding:16px}
+.funil-bar{display:flex;height:44px;border-radius:var(--radius-s);overflow:hidden;background:var(--surface-2)}
+.funil-bar i{display:block;height:100%;min-width:3px;transition:flex-grow .4s ease}
+.funil-leg{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px 16px;margin-top:14px;font-size:14px}
+@media (min-width:760px){.funil-leg{grid-template-columns:repeat(5,1fr)}}
+.funil-leg div{display:flex;flex-direction:column}
+.funil-leg em{font-style:normal;display:flex;align-items:center;gap:6px;color:var(--ink-2)}
+.dot{width:10px;height:10px;border-radius:3px;display:inline-block;flex:none}
+.two{display:grid;gap:0 28px}
+.two>div{min-width:0}
+@media (min-width:900px){.two{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}}
+
+/* Listas */
+.list{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius-m);overflow:hidden}
+.row{display:flex;align-items:center;gap:12px;padding:12px 14px;border-top:1px solid var(--line);width:100%;background:none;border-left:0;border-right:0;border-bottom:0;text-align:left}
+.row:first-child{border-top:0}
+button.row:hover{background:var(--surface-2)}
+.row .grow{flex:1;min-width:0;display:flex;flex-direction:column;justify-content:center}
+.row .t{font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.row .s{font-size:13px;color:var(--ink-2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.row .v{font-weight:650;white-space:nowrap}
+.empty{padding:22px 16px;color:var(--ink-2);font-size:15px}
+.aviso{color:var(--a1-ink)}
+.late{color:var(--danger)}
+.check{width:24px;height:24px;border-radius:7px;border:2px solid var(--line);background:var(--surface);flex:none;display:grid;place-items:center;padding:0}
+.check.on{background:var(--ok);border-color:var(--ok)}
+.check.on::after{content:"";width:6px;height:11px;border:solid #fff;border-width:0 2.5px 2.5px 0;transform:rotate(45deg) translate(-1px,-1px)}
+.done .t{text-decoration:line-through;color:var(--ink-2)}
+
+/* Pipeline */
+.board{display:grid;grid-auto-flow:column;grid-auto-columns:86%;gap:12px;overflow-x:auto;scroll-snap-type:x mandatory;padding-bottom:8px;margin:0 -16px;padding-left:16px;padding-right:16px}
+@media (min-width:760px){.board{grid-auto-columns:minmax(220px,1fr)}}
+.col{scroll-snap-align:start;background:var(--surface-2);border:1px solid var(--line);border-radius:var(--radius-m);display:flex;flex-direction:column;min-height:240px}
+.col.over{outline:2px dashed var(--brand);outline-offset:-4px}
+.col-h{padding:12px 14px 10px;border-top:4px solid var(--c);border-radius:var(--radius-m) var(--radius-m) 0 0}
+.col-h b{font-size:16px}
+.col-h div{font-size:13px;color:var(--ink-2)}
+.cards{padding:0 8px 10px;display:flex;flex-direction:column;gap:8px}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius-s);padding:10px 12px;text-align:left;width:100%;display:block}
+.card:hover{border-color:var(--ink-2)}
+.card .t{font-weight:600;line-height:1.25}
+.card .s{font-size:13px;color:var(--ink-2);margin-top:2px}
+.card .f{display:flex;align-items:center;justify-content:space-between;margin-top:8px;font-size:13px}
+.card .f .av{width:22px;height:22px;font-size:10px}
+.card[draggable="true"]{cursor:grab}
+
+/* Clientes */
+.seg{display:inline-flex;background:var(--surface-2);border:1px solid var(--line);border-radius:999px;padding:3px;margin-bottom:12px}
+.seg button{border:0;background:none;padding:7px 16px;border-radius:999px;font-size:15px;color:var(--ink-2)}
+.seg button[aria-pressed="true"]{background:var(--surface);color:var(--ink);font-weight:650;box-shadow:0 0 0 1px var(--line)}
+.search{width:100%;padding:12px 14px;border:1px solid var(--line);border-radius:var(--radius-m);background:var(--surface);margin-bottom:12px;font-size:16px}
+/* Mostrar "Ligar" só no telemóvel e "Email" só no computador (corte em 760px) */
+.apenas-pc{display:none}
+@media (min-width:760px){.apenas-telemovel{display:none}.apenas-pc{display:inline-flex;align-items:center;gap:8px}}
+.iconbtn{width:40px;height:40px;border-radius:50%;border:1px solid var(--line);background:var(--surface);display:inline-grid;place-items:center;text-decoration:none;color:var(--brand);flex:none}
+.iconbtn svg{width:18px;height:18px}
+
+/* Navegação inferior */
+.nav{position:fixed;left:0;right:0;bottom:0;z-index:30;background:var(--surface);border-top:1px solid var(--line);padding-bottom:env(safe-area-inset-bottom,0px)}
+.nav-in{max-width:600px;margin:0 auto;display:grid;grid-template-columns:repeat(5,1fr);align-items:center}
+.nav button{border:0;background:none;display:flex;flex-direction:column;align-items:center;gap:2px;padding:9px 0 8px;font-size:11.5px;color:var(--ink-2);min-width:0}
+.nav button svg{width:22px;height:22px}
+.nav button[aria-current="page"]{color:var(--brand);font-weight:650}
+.nav .plus{width:52px;height:52px;border-radius:16px;background:var(--brand);color:var(--brand-ink);margin:0 auto;display:grid;place-items:center;padding:0;transform:translateY(-6px)}
+.nav .plus svg{width:26px;height:26px}
+
+/* Folha (sheet) */
+.back{position:fixed;inset:0;background:rgba(14,20,34,.5);z-index:50;display:flex;align-items:flex-end;justify-content:center;overscroll-behavior:none}
+.back[hidden]{display:none}
+.sheet{background:var(--surface);width:100%;max-width:600px;max-height:90%;overflow-x:hidden;overflow-y:auto;overscroll-behavior:none;-webkit-overflow-scrolling:touch;touch-action:pan-y;border-radius:var(--radius-l) var(--radius-l) 0 0;padding:8px 18px calc(22px + env(safe-area-inset-bottom,0px));animation:up .22s ease-out}
+@media (min-width:760px){.back{align-items:center}.sheet{border-radius:var(--radius-l);max-height:86%}}
+@keyframes up{from{transform:translateY(24px);opacity:.6}to{transform:none;opacity:1}}
+@media (prefers-reduced-motion:reduce){.sheet{animation:none}.funil-bar i,.bar-fill{transition:none}}
+.grab{width:40px;height:5px;border-radius:3px;background:var(--line);margin:4px auto 10px}
+.sh-h{display:flex;align-items:flex-start;gap:12px;margin-bottom:6px}
+.sh-h h3{margin:0;font-size:22px;font-stretch:85%;font-weight:750;line-height:1.15;flex:1}
+.x{border:0;background:var(--surface-2);width:34px;height:34px;border-radius:50%;font-size:20px;line-height:1;flex:none}
+.big{font-size:34px;font-stretch:80%;font-weight:750;letter-spacing:-.02em;margin:8px 0 2px}
+.stepper{display:flex;flex-wrap:wrap;gap:6px;margin:14px 0 4px}
+.stepper button{border:1px solid var(--line);background:var(--surface);border-radius:999px;padding:6px 12px;font-size:14px}
+.stepper button[aria-pressed="true"]{background:var(--c);border-color:var(--c);color:var(--brand-ink);font-weight:650}
+dl.facts{display:grid;grid-template-columns:auto 1fr;gap:6px 16px;margin:16px 0;font-size:15px}
+dl.facts dt{color:var(--ink-2)}
+dl.facts dd{margin:0;min-width:0;overflow-wrap:anywhere}
+.actions{display:flex;flex-wrap:wrap;gap:8px;margin:16px 0}
+.btn{border:1px solid var(--line);background:var(--surface);border-radius:var(--radius-s);padding:10px 16px;font-weight:600;font-size:15px}
+.btn.pri{background:var(--brand);border-color:var(--brand);color:var(--brand-ink)}
+.btn.danger{color:var(--danger)}
+.btn:disabled{opacity:.5;cursor:default}
+.timeline{list-style:none;margin:8px 0 0;padding:0;border-left:2px solid var(--line);margin-left:6px}
+.timeline li{padding:0 0 14px 16px;position:relative;font-size:15px}
+.timeline li::before{content:"";position:absolute;left:-7px;top:6px;width:12px;height:12px;border-radius:50%;background:var(--surface);border:2px solid var(--brand)}
+.timeline small{display:block;color:var(--ink-2);font-size:13px}
+form .fld{display:flex;flex-direction:column;gap:4px;margin-bottom:12px}
+form label{font-size:14px;font-weight:600;color:var(--ink-2)}
+form input,form select,form textarea{border:1px solid var(--line);background:var(--surface-2);border-radius:var(--radius-s);padding:11px 12px;font-size:16px;width:100%;min-width:0;max-width:100%}
+form input[type=date]{-webkit-appearance:none;appearance:none;min-height:46px;text-align:left}
+form input[type=date]::-webkit-date-and-time-value{text-align:left}
+form .fld{min-width:0}
+form textarea{min-height:84px;resize:vertical}
+.grid2{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:0 12px}
+.menu{display:flex;flex-direction:column;gap:8px;margin-top:8px}
+.menu .btn{text-align:left;padding:14px 16px;font-size:16px}
+.toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(88px + env(safe-area-inset-bottom,0px));background:var(--ink);color:var(--bg);padding:10px 16px;border-radius:999px;font-size:14px;z-index:60;max-width:90%}
+.toast[hidden]{display:none}
+.toast{display:flex;align-items:center;gap:14px}
+.toast-btn{border:0;background:none;color:var(--bg);font-weight:700;text-decoration:underline;padding:4px 2px;font-size:14px}
+
+.kpi{border:0;text-align:left;display:block;width:100%;font:inherit;color:inherit}
+button.kpi:hover{background:var(--surface-2)}
+.badge{display:inline-block;font-size:12px;font-weight:650;padding:3px 9px;border-radius:999px;white-space:nowrap}
+.b-ok{background:var(--surface-2);color:var(--ink-2);border:1px solid var(--line)}
+.b-a1{background:var(--a1-bg);color:var(--a1-ink)}
+.b-a2{background:var(--a2-bg);color:var(--a2-ink)}
+.b-a3{background:var(--danger);color:#fff}
+.bar{height:6px;border-radius:3px;background:var(--surface-2);margin:7px 0 5px;overflow:hidden}
+.bar i{display:block;height:100%;background:var(--brand);border-radius:3px}
+.rec{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius-m);padding:14px;margin-top:14px}
+/* Caixa compacta por vendedor (dashboard do gestor) */
+.rec-vend{padding:11px 12px;margin-top:10px}
+.rec-vh{display:flex;justify-content:space-between;align-items:baseline;gap:8px;flex-wrap:wrap;margin-bottom:8px}
+.rec-vh .t{font-weight:700;font-size:15px}
+.rec-vh .vv{font-size:13px;font-variant-numeric:tabular-nums}
+.rec-vh .vv b{font-weight:700}
+.kpis-c{display:grid;gap:1px;background:var(--line);border:1px solid var(--line);border-radius:var(--radius-s);overflow:hidden}
+.kpis-c .kpi{padding:6px 6px;text-align:center}
+.kpis-c button.kpi{cursor:pointer}
+.kpis-c .kpi b{display:block;font-size:14px;font-weight:700;letter-spacing:-.01em;font-variant-numeric:tabular-nums}
+.kpis-c .kpi span{font-size:11px;color:var(--ink-2)}
+.rec-h{display:flex;gap:12px;align-items:flex-start;margin-bottom:8px}
+.rec-h .grow{flex:1}
+.rec-aviso{font-size:14px;color:var(--ink-2);background:var(--surface-2);border-radius:var(--radius-s);padding:8px 10px;margin-bottom:10px}
+.rec .row .t{white-space:normal}
+.rec-aviso.late{color:var(--danger)}
+.voltar{border:0;background:none;color:var(--brand);font-weight:600;padding:4px 0;margin-bottom:4px;font-size:15px}
+.menu .btn{display:flex;flex-direction:column;gap:2px}
+.nota{margin:-4px 0 10px;font-size:14px}
+.motivo{display:flex;justify-content:space-between;gap:12px;font-size:14px;padding:5px 0;border-top:1px solid var(--line)}
+/* Procura de cortantes por medidas (±5 mm) */
+.medidas-bar{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.medidas-bar label{display:flex;flex-direction:column;gap:4px;font-size:12px;color:var(--ink-2)}
+.medidas-bar input{width:100%;padding:9px 10px;border:1px solid var(--line);border-radius:var(--radius-s);background:var(--surface);color:var(--ink);font-size:15px;box-sizing:border-box}
+.cort-troca{color:var(--brand);font-weight:600}
+/* Dashboard de projetos perdidos: barras horizontais (o comprimento = valor perdido) */
+.perdas{margin-top:14px;background:var(--surface);border:1px solid var(--line);border-radius:var(--radius-m);padding:16px}
+.perdas-hero{display:flex;flex-direction:column;gap:1px}
+.perdas-hero b{font-size:30px;line-height:1.05;color:var(--danger);font-variant-numeric:tabular-nums}
+.perdas-hero span{color:var(--ink-2);font-size:13px}
+.perdas-grp{margin-top:20px}
+.perdas-h{font-size:16px;font-weight:750;color:var(--ink);margin:0 0 10px;padding-bottom:7px;border-bottom:2px solid var(--brand);letter-spacing:-.01em}
+.bar-row{margin-top:11px}
+.bar-top{display:flex;justify-content:space-between;align-items:baseline;gap:10px;font-size:14px}
+.bar-lbl{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--ink)}
+.bar-val{font-weight:650;color:var(--ink);font-variant-numeric:tabular-nums;white-space:nowrap}
+.bar-track{height:10px;background:var(--surface-2);border-radius:999px;margin-top:5px;overflow:hidden}
+.bar-fill{display:block;height:100%;background:var(--brand);border-radius:999px;min-width:6px;transition:width .4s ease}
+.bar-sub{color:var(--ink-2);font-size:12px;margin-top:3px}
+.linkbtn{border:0;background:none;padding:0;color:var(--brand);font:inherit;text-decoration:underline;cursor:pointer}
+.seg-scroll{display:flex;overflow-x:auto;max-width:100%;scrollbar-width:none;overscroll-behavior-x:contain}
+.seg-scroll button{white-space:nowrap}
+.menu-s{font-weight:400;font-size:14px;color:var(--ink-2)}
+.nav .plus{margin:0 auto}
+.loading{padding:40px 0;color:var(--ink-2)}
+
+/* Formulários com secções (pedido de orçamento) */
+form .fld[hidden]{display:none}
+.frm-sec{font-size:17px;font-weight:700;margin:22px 0 12px;padding-top:16px;border-top:1px solid var(--line)}
+form .frm-sec:first-child{margin-top:4px;padding-top:0;border-top:0}
+form label.chk{display:flex;align-items:center;gap:10px;font-weight:500;color:var(--ink);font-size:16px;padding:6px 0;cursor:pointer}
+form input[type=checkbox]{width:22px;height:22px;padding:0;flex:none;accent-color:var(--brand)}
+.chks{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(150px,100%),1fr));gap:0 12px}
+.chks-1{grid-template-columns:1fr}
+.chks-1 label.chk{font-size:15px;align-items:flex-start}
+.timeline small.late{color:var(--danger)}
+form input[type=file]{background:none;border:1px dashed var(--line);padding:12px}
+form small{font-size:13px}
+.anexos{display:flex;flex-direction:column;gap:6px;margin:4px 0}
+.anexo{display:flex;align-items:center;gap:10px;background:var(--surface-2);border-radius:var(--radius-s);padding:8px 10px;font-size:14px;min-width:0}
+.anexo .grow{flex:1;min-width:0;overflow-wrap:anywhere}
+.spec-t{font-size:14px;font-weight:700;color:var(--ink-2);margin:14px 0 0;text-transform:uppercase;letter-spacing:.03em}
+
+/* Pesquisa, ferramentas, contactos */
+.lupa{margin-left:auto}
+.lupa svg{width:20px;height:20px}
+.atalhos{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+@media (min-width:760px){.atalhos{grid-template-columns:repeat(4,1fr)}}
+.atalho{display:flex;flex-direction:column;gap:2px;text-align:left;padding:14px;min-height:72px}
+.tipo-ct{display:inline-block;font-size:11px;font-weight:700;letter-spacing:.03em;text-transform:uppercase;color:var(--brand);background:var(--surface-2);border:1px solid var(--line);border-radius:4px;padding:0 5px;margin-right:2px}
+.b-sobe{background:var(--sobe-bg);color:var(--sobe-ink)}
+.fld-linha{display:grid;gap:0 10px}
+@media (min-width:760px){.fld-linha{grid-template-columns:minmax(0,1fr) minmax(0,2fr)}}
+select.search{appearance:auto}
+
+/* Dashboards: vendas YTD vs. ano anterior */
+.ytd .ytd-row{display:block}
+.ytd-l1,.ytd-l2{display:flex;justify-content:space-between;align-items:center;gap:10px;min-width:0}
+.ytd-l1 .t{min-width:0}
+.ytd-l2{margin-top:2px}
+.ytd-l2 .s{min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ytd-var{font-size:13px;font-weight:650;white-space:nowrap;display:inline-flex;align-items:center;gap:6px;color:var(--ink)}
+.ytd-total{background:var(--surface-2)}
+.div-bar{position:relative;height:10px;margin:8px 0 2px}
+.div-bar .div-eixo{position:absolute;left:50%;top:-3px;bottom:-3px;width:1px;background:var(--div-eixo)}
+.div-bar i{position:absolute;top:1px;bottom:1px;display:block}
+.div-bar i.pos{left:calc(50% + 2px);background:var(--div-pos);border-radius:0 4px 4px 0}
+.div-bar i.neg{right:calc(50% + 2px);background:var(--div-neg);border-radius:4px 0 0 4px}
+.leg-sw{display:inline-block;width:10px;height:10px;border-radius:2px;vertical-align:-1px}
+.leg-sw.pos{background:var(--div-pos)}.leg-sw.neg{background:var(--div-neg)}
+
+/* Cortantes */
+.cort-form{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:0 10px;background:var(--surface);border:1px solid var(--line);border-radius:var(--radius-m);padding:14px 14px 2px;margin-bottom:14px}
+.cort-form .cort-tipo{grid-column:span 2}
+@media (min-width:760px){.cort-form{grid-template-columns:repeat(5,minmax(0,1fr))}.cort-form .cort-tipo{grid-column:auto}}
+.cort-form input,.cort-form select{border:1px solid var(--line);background:var(--surface-2);border-radius:var(--radius-s);padding:11px 10px;font-size:16px;width:100%}
+.cort-form label{font-size:14px;font-weight:600;color:var(--ink-2)}
+.cort-img{margin:14px 0 4px;background:var(--surface-2);border:1px solid var(--line);border-radius:var(--radius-m);padding:12px}
+.cort-img img,.cort-img svg{display:block;width:100%;max-height:300px;object-fit:contain}
+.cort-img figcaption{font-size:13px;margin-top:8px}
+.esquema .corte{fill:var(--surface);stroke:var(--ink);stroke-width:2;vector-effect:non-scaling-stroke}
+.esquema .vinco{fill:none;stroke:var(--accent);stroke-width:1.5;stroke-dasharray:6 4;vector-effect:non-scaling-stroke}
+
+/* Login */
+.chip[hidden],.nav[hidden]{display:none}
+.login{max-width:420px;margin:6vh auto 0}
+.login-btn{width:100%;padding:13px 16px;font-size:16px}
+.login-erro{margin:-4px 0 12px;font-size:14px}
+.login-erro[hidden]{display:none}
+</style>
+</head>
+<body>
+
+<header class="top">
+  <div class="top-in">
+    <img class="logo-img" src="logotipo.png" alt="Calheiros Embalagens" width="720" height="259">
+    <button class="iconbtn lupa" data-tab="clientes" aria-label="Pesquisar clientes"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="11" cy="11" r="6.5"/><path d="M16 16l4.5 4.5"/></svg></button>
+    <button class="chip" data-act="sessao" id="meChip" hidden aria-label="Sessão"></button>
+  </div>
+</header>
+<div class="banner" id="banner" hidden></div>
+
+<main>
+  <section class="view" id="v-login" hidden></section>
+  <section class="view" id="v-inicio" hidden></section>
+  <section class="view" id="v-clientes" hidden></section>
+  <section class="view" id="v-ferramentas" hidden></section>
+  <section class="view" id="v-artigos" hidden></section>
+  <section class="view" id="v-cortantes" hidden></section>
+  <section class="view" id="v-stock" hidden></section>
+  <section class="view" id="v-tarefas" hidden></section>
+  <section class="view" id="v-projetos" hidden></section>
+  <section class="view" id="v-recebimentos" hidden></section>
+  <section class="view" id="v-dashboards" hidden></section>
+</main>
+
+<nav class="nav" aria-label="Secções" hidden>
+  <div class="nav-in" style="grid-template-columns:repeat(5,1fr)">
+    <button data-tab="inicio" aria-current="page"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 11l9-7 9 7v9a1 1 0 0 1-1 1h-5v-6h-6v6H4a1 1 0 0 1-1-1z"/></svg>Início</button>
+    <button data-tab="clientes"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20c.8-3.6 3.4-5.5 6.5-5.5s5.7 1.9 6.5 5.5"/><path d="M16 4.5a3.5 3.5 0 0 1 0 7M18 14.8c1.8.7 3 2.4 3.5 5.2"/></svg>Clientes</button>
+    <button class="plus" data-act="novo" aria-label="Adicionar"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M12 5v14M5 12h14"/></svg></button>
+    <button data-tab="ferramentas"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 7l9-4 9 4-9 4-9-4z"/><path d="M3 7v10l9 4 9-4V7"/><path d="M12 11v10"/></svg>Ferramentas</button>
+    <button data-tab="dashboards"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></svg>Dashboards</button>
+  </div>
+</nav>
+
+<div class="back" id="back" hidden><div class="sheet" id="sheet" role="dialog" aria-modal="true"></div></div>
+<div class="toast" id="toast" hidden></div>
+
+<script src="dados-exemplo.js"></script>
+<script src="artigos-exemplo.js"></script>
+<script src="stock-exemplo.js"></script>
+<script src="seguro-credito-exemplo.js"></script>
+<script src="utilizadores-exemplo.js"></script>
+<script src="js/config.js"></script>
+<script src="js/store.js"></script>
+<script src="js/logic.js"></script>
+<script src="js/forms.js"></script>
+<script src="js/ui.js"></script>
+
+</body>
+</html>
