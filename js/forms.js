@@ -21,7 +21,7 @@ const ACABAMENTOS = ["", "Sem acabamento", "Colada", "Agrafada", "Fundo automát
 /* 🔧 LISTA PROVISÓRIA — a confirmar/fornecer pela utilizadora (ponto 6). "Outros" abre campo livre. */
 const EXIGENCIAS_EMBALAMENTO = ["Palete Euro (1200×800)", "Palete 1000×1200", "Filme estirável", "Cantoneiras / esquineiros", "Intercalares entre camadas", "Nº de caixas por palete definido", "Altura máxima de palete", "Cinta / cintagem", "Outros"];
 /* 🔧 LISTA PROVISÓRIA — a confirmar/fornecer pela utilizadora (ponto 11). */
-const ORIGEM_CLIENTE = ["", "Primeiro contacto", "Recomendação de cliente", "Feira / evento", "Website / pesquisa online", "Contacto do vendedor", "Campanha / marketing", "Outro"];
+const ORIGEM_CLIENTE = ["", "Recomendação de cliente", "Feira / evento", "Website / pesquisa online", "Contacto do vendedor", "Campanha / marketing", "Outro"];
 
 /* ---------- construtor genérico de formulário em folha ---------- */
 function campoHTML(c, val) {
