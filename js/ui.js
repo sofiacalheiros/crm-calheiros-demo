@@ -805,7 +805,7 @@ function sheetArtigo(artigo, ent) {
         <dt>Ordem de produção</dt><dd>${a.ultimaOP != null ? esc(a.ultimaOP) : "—"}</dd>
         <dt>Data</dt><dd>${a.dataUltimaProducao ? dataCompleta(a.dataUltimaProducao) : "—"}</dd>
         <dt>Qtd. produzida</dt><dd>${a.qtdProduzida != null ? unid(a.qtdProduzida) : "—"}</dd>
-        <dt>Preço/unidade</dt><dd>${a.precoUnitario ? eurU(a.precoUnitario) : "—"}</dd>
+        ${L.podeVerPrecoUnitario(sessao) ? `<dt>Preço/unidade</dt><dd>${a.precoUnitario ? eurU(a.precoUnitario) : "—"}</dd>` : ""}
       </dl>
       <div class="actions"><button class="btn pri" data-act="orcArtigo" data-ent="${esc(a.CodCliente)}" data-artigo="${esc(a.artigo)}">Pedir orçamento a partir deste artigo</button></div>`;
   });
