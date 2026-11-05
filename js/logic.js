@@ -279,6 +279,28 @@ function validaConclusaoTarefa(d) {
   return { ok: Object.keys(erros).length === 0, erros };
 }
 
+/* Grelha mensal (estilo Outlook). Devolve 6 semanas de segunda a domingo,
+   cada dia com as suas tarefas (por data). Usa UTC para não depender do fuso. */
+const MESES_PT = ["janeiro", "fevereiro", "março", "abril", "maio", "junho", "julho", "agosto", "setembro", "outubro", "novembro", "dezembro"];
+function calendarioMes(atividades, ano, mes, hojeIso) {
+  const porDia = {};
+  (atividades || []).filter(a => a.tipo === "tarefa" && a.data).forEach(t => { (porDia[t.data] = porDia[t.data] || []).push(t); });
+  const diaSemana = (new Date(Date.UTC(ano, mes - 1, 1)).getUTCDay() + 6) % 7;   // 0 = segunda
+  const cur = new Date(Date.UTC(ano, mes - 1, 1 - diaSemana));
+  const semanas = [];
+  for (let w = 0; w < 6; w++) {
+    const semana = [];
+    for (let d = 0; d < 7; d++) {
+      const iso = cur.toISOString().slice(0, 10);
+      const lista = (porDia[iso] || []).slice().sort((a, b) => (a.concluida ? 1 : 0) - (b.concluida ? 1 : 0));
+      semana.push({ iso, dia: cur.getUTCDate(), fora: cur.getUTCMonth() !== mes - 1, hoje: iso === String(hojeIso), tarefas: lista });
+      cur.setUTCDate(cur.getUTCDate() + 1);
+    }
+    semanas.push(semana);
+  }
+  return { semanas, label: MESES_PT[mes - 1] + " " + ano, ano, mes };
+}
+
 /* ---------- pesquisa de cortantes ---------- */
 function pesquisaCortantes(cortantes, termo) {
   const t = normaliza(termo).trim();
@@ -572,6 +594,6 @@ function podeVerPrecoUnitario(sessao) {
   return !!sessao && sessao.perfil === "gestor";
 }
 
-const _API = { normaliza, diasEntre, visiveis, pesquisaClientes, pesquisaCortantes, cortantesPorMedidas, recebimentosEscaloes, artigosProduzidos, listaArtigos, catalogoArtigos, listaStock, agendaTarefas, fichaCliente, dashboardClientes, dashboardVendedores, resumoProjetos, pipelineProjetos, validaMudancaEstado, patchMudancaEstado, motivosRecusa, ESTADOS_PROJETO, MOTIVOS_RECUSA, recebimentosPorCliente, recebimentosGeral, recebimentosCartoes, avisosCliente, creditoCliente, opcoesOrcamento, validaPedidoOrcamento, podeVerPrecoUnitario, tarefasVisiveis, tarefaAutoNaoAceite, validaTarefa, validaConclusaoTarefa };
+const _API = { normaliza, diasEntre, visiveis, pesquisaClientes, pesquisaCortantes, cortantesPorMedidas, recebimentosEscaloes, artigosProduzidos, listaArtigos, catalogoArtigos, listaStock, agendaTarefas, fichaCliente, dashboardClientes, dashboardVendedores, resumoProjetos, pipelineProjetos, validaMudancaEstado, patchMudancaEstado, motivosRecusa, ESTADOS_PROJETO, MOTIVOS_RECUSA, recebimentosPorCliente, recebimentosGeral, recebimentosCartoes, avisosCliente, creditoCliente, opcoesOrcamento, validaPedidoOrcamento, podeVerPrecoUnitario, tarefasVisiveis, tarefaAutoNaoAceite, validaTarefa, validaConclusaoTarefa, calendarioMes };
 if (typeof module !== "undefined" && module.exports) module.exports = _API;
 if (typeof window !== "undefined") window.L = _API;

@@ -485,19 +485,78 @@ function rowTarefa(t, porAlocar) {
     ${t.Vendedor && ehGestor() ? `<span class="s">${esc(primeiro(t.Vendedor))}</span>` : ""}
   </div>`;
 }
+/* Vista (mês/lista) e mês mostrado no calendário. */
+let tarefaVista = "mes";
+let calAno = null, calMes = null;
+function calInit() { if (calAno == null) { const h = isoHoje(); calAno = +h.slice(0, 4); calMes = +h.slice(5, 7); } }
+function calNav(delta) { calInit(); let m = calMes + delta, a = calAno; if (m < 1) { m = 12; a--; } if (m > 12) { m = 1; a++; } calMes = m; calAno = a; renderAll(); }
+
+function estadoTarefa(t) { return t.concluida ? "done" : (t.data && t.data < isoHoje() ? "late" : "ok"); }
+
+function calendarioHTML(cal) {
+  const dias = ["Seg", "Ter", "Qua", "Qui", "Sex", "Sáb", "Dom"];
+  const cel = c => {
+    const chips = c.tarefas.slice(0, 3).map(t => `<span class="cal-chip ${estadoTarefa(t)}">${esc(t.descricao || "")}</span>`).join("");
+    const mais = c.tarefas.length > 3 ? `<span class="cal-mais">+${c.tarefas.length - 3}</span>` : "";
+    return `<button class="cal-cell ${c.fora ? "fora" : ""} ${c.hoje ? "hoje" : ""}" data-act="verDia" data-id="${c.iso}">
+      <span class="cal-dia">${c.dia}</span>${chips}${mais}</button>`;
+  };
+  return `<div class="cal-nav"><button class="btn mini" data-act="calPrev" aria-label="Mês anterior">‹</button><b>${esc(cal.label)}</b><button class="btn mini" data-act="calNext" aria-label="Mês seguinte">›</button></div>
+    <div class="cal-dow">${dias.map(d => `<span>${d}</span>`).join("")}</div>
+    <div class="cal-grid">${cal.semanas.map(sem => sem.map(cel).join("")).join("")}</div>`;
+}
+
+function listaTarefasHTML(ag) {
+  return `<h2>A fazer</h2>
+    <div class="list">${ag.aFazer.length ? ag.aFazer.map(t => rowTarefa(t)).join("") : '<div class="empty">Sem tarefas agendadas.</div>'}</div>
+    ${ag.concluidas.length ? `<h2>Concluídas</h2><div class="list">${ag.concluidas.slice(0, 20).map(t => rowTarefa(t)).join("")}</div>` : ""}`;
+}
+
 function vTarefas(el) {
   const ag = L.agendaTarefas(S.atividades || [], isoHoje());
   const totalAfazer = ag.aFazer.length + ag.porAlocar.length;
+  calInit();
+  const corpo = tarefaVista === "mes" ? calendarioHTML(L.calendarioMes(S.atividades || [], calAno, calMes, isoHoje())) : listaTarefasHTML(ag);
   el.innerHTML = `
     <button class="voltar" data-tab="ferramentas">‹ Ferramentas</button>
     <h1>Tarefas</h1>
     <p class="sub">${totalAfazer} a fazer${ag.atrasadas ? ` · ${ag.atrasadas} atrasadas` : ""}${ag.porAlocar.length ? ` · ${ag.porAlocar.length} por alocar` : ""}${ehGestor() ? " (toda a equipa)" : ""}</p>
-    <div class="actions" style="margin:8px 0 14px"><button class="btn pri" data-act="novaTarefa">+ Nova tarefa</button></div>
+    <div class="tar-top">
+      <div class="seg"><button class="seg-b ${tarefaVista === "mes" ? "on" : ""}" data-act="vista" data-v="mes">Mês</button><button class="seg-b ${tarefaVista === "lista" ? "on" : ""}" data-act="vista" data-v="lista">Lista</button></div>
+      <button class="btn pri" data-act="novaTarefa">+ Nova tarefa</button>
+    </div>
     ${ag.porAlocar.length ? `<h2>Banco de tarefas <span class="muted" style="font-weight:400">(pendente de alocar)</span></h2>
     <div class="list banco-tarefas">${ag.porAlocar.map(t => rowTarefa(t, true)).join("")}</div>` : ""}
-    <h2>A fazer</h2>
-    <div class="list">${ag.aFazer.length ? ag.aFazer.map(t => rowTarefa(t)).join("") : '<div class="empty">Sem tarefas agendadas.</div>'}</div>
-    ${ag.concluidas.length ? `<h2>Concluídas</h2><div class="list">${ag.concluidas.slice(0, 20).map(t => rowTarefa(t)).join("")}</div>` : ""}`;
+    ${corpo}`;
+}
+
+/* Folha de um dia do calendário: lista as tarefas desse dia + criar nova nesse dia. */
+function sheetDia(iso) {
+  openSheet(() => {
+    const dia = (S.atividades || []).filter(a => a.tipo === "tarefa" && a.data === iso);
+    const linhas = dia.length ? dia.map(t => {
+      const st = estadoTarefa(t);
+      const fb = t.concluida && t.resultadoNotas ? ` · ${esc(t.resultado || "Concluída")}: ${esc(t.resultadoNotas)}` : "";
+      return `<div class="row ${t.concluida ? "done" : ""}">
+        <button class="check ${t.concluida ? "on" : ""}" data-act="toggleTarefa" data-id="${esc(t.id)}" aria-label="${t.concluida ? "Reabrir" : "Concluir"}"></button>
+        <span class="grow"><span class="t">${esc(t.descricao || "Tarefa")}</span><span class="s ${st === "late" ? "late" : ""}">${esc(t.Entidade ? cliNome(t.Entidade) : "")}${fb}</span></span>
+        ${!t.concluida ? `<button class="btn mini" data-act="alocarData" data-id="${esc(t.id)}">Reagendar</button>` : ""}
+        ${t.Vendedor && ehGestor() ? `<span class="s">${esc(primeiro(t.Vendedor))}</span>` : ""}
+      </div>`;
+    }).join("") : '<div class="empty">Sem tarefas neste dia.</div>';
+    $("#sheet").innerHTML = `<div class="grab"></div>
+      <div class="sh-h"><h3 style="text-transform:capitalize">${dataCompleta(iso)}</h3><button class="x" data-act="fechar" aria-label="Fechar">×</button></div>
+      <div class="list">${linhas}</div>
+      <div class="actions"><button class="btn pri" data-act="novaTarefaDia" data-id="${iso}">+ Nova tarefa neste dia</button></div>`;
+  });
+}
+async function toggleTarefa(id) {
+  const t = (S.atividades || []).find(a => String(a.id) === String(id));
+  if (!t || !Store) return;
+  // Concluir obriga a feedback → abre formulário. Reabrir é direto.
+  if (!t.concluida) { if (typeof formConcluirTarefa === "function") formConcluirTarefa(id); return; }
+  try { await Store.update("atividades", id, { concluida: false, concluidaEm: null }); }
+  catch (e) { toast("Não foi possível guardar."); }
 }
 async function toggleTarefa(id) {
   const t = (S.atividades || []).find(a => String(a.id) === String(id));
@@ -881,7 +940,12 @@ document.addEventListener("click", ev => {
       case "verStock": sheetStock(id); break;
       case "toggleTarefa": toggleTarefa(id); break;
       case "novaTarefa": if (typeof formTarefa === "function") formTarefa({}); break;
+      case "novaTarefaDia": if (typeof formTarefa === "function") formTarefa({ data: id }); break;
       case "alocarData": if (typeof formAlocarData === "function") formAlocarData(id); break;
+      case "vista": tarefaVista = (v === "lista" ? "lista" : "mes"); renderAll(); break;
+      case "calPrev": calNav(-1); break;
+      case "calNext": calNav(1); break;
+      case "verDia": sheetDia(id); break;
       case "verProjeto": sheetProjeto(id); break;
       case "estado": formMudarEstado(id, v); break;
       case "cortCruzada": cortCruzada = (v === "true"); renderAll(); break;
