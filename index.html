@@ -261,6 +261,9 @@ form .fld[hidden]{display:none}
 form .frm-sec:first-child{margin-top:4px;padding-top:0;border-top:0}
 form label.chk{display:flex;align-items:center;gap:10px;font-weight:500;color:var(--ink);font-size:16px;padding:6px 0;cursor:pointer}
 form input[type=checkbox]{width:22px;height:22px;padding:0;flex:none;accent-color:var(--brand)}
+.checklist{display:flex;flex-direction:column;gap:2px;border:1px solid var(--line);border-radius:12px;padding:6px 12px}
+.checklist label.chk{padding:8px 0;border-bottom:1px solid var(--line)}
+.checklist label.chk:last-child{border-bottom:0}
 .chks{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(150px,100%),1fr));gap:0 12px}
 .chks-1{grid-template-columns:1fr}
 .chks-1 label.chk{font-size:15px;align-items:flex-start}

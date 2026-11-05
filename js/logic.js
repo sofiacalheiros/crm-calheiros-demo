@@ -519,6 +519,9 @@ function validaPedidoOrcamento(d) {
   if (!d.cliente && !d.novoCliente) erros.cliente = "Escolha o cliente.";
   if (!d.descricao || !String(d.descricao).trim()) erros.descricao = "Descreva o que pretende.";
   if (!String(d.quantidade == null ? "" : d.quantidade).trim()) erros.quantidade = "Indique a quantidade.";
+  if (!d.localEntrega || !String(d.localEntrega).trim()) erros.localEntrega = "Indique o local de entrega.";
+  if (d.prodAlimentares && d.contactoProdAlimentar !== "Direto" && d.contactoProdAlimentar !== "Indireto")
+    erros.contactoProdAlimentar = "Indique se o contacto com o alimento é direto ou indireto.";
   return { ok: Object.keys(erros).length === 0, erros };
 }
 

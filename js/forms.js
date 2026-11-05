@@ -18,6 +18,10 @@ const BARREIRAS = ["", "Vácuo", "Plástico", "Papel alimentar", "Frasco", "Emba
 /* 🔧 lista oficial a confirmar com o IT */
 const REVESTIMENTOS = ["", "Sem revestimento", "Verniz aquoso", "Verniz UV", "Plastificação brilho", "Plastificação mate", "Barreira a gorduras", "Barreira à humidade"];
 const ACABAMENTOS = ["", "Sem acabamento", "Colada", "Agrafada", "Fundo automático (pré-colada)", "Pega recortada", "Picotado de abertura fácil", "Fita de rasgar", "Gravação a seco / relevo"];
+/* 🔧 LISTA PROVISÓRIA — a confirmar/fornecer pela utilizadora (ponto 6). "Outros" abre campo livre. */
+const EXIGENCIAS_EMBALAMENTO = ["Palete Euro (1200×800)", "Palete 1000×1200", "Filme estirável", "Cantoneiras / esquineiros", "Intercalares entre camadas", "Nº de caixas por palete definido", "Altura máxima de palete", "Cinta / cintagem", "Outros"];
+/* 🔧 LISTA PROVISÓRIA — a confirmar/fornecer pela utilizadora (ponto 11). */
+const ORIGEM_CLIENTE = ["", "Primeiro contacto", "Recomendação de cliente", "Feira / evento", "Website / pesquisa online", "Contacto do vendedor", "Campanha / marketing", "Outro"];
 
 /* ---------- construtor genérico de formulário em folha ---------- */
 function campoHTML(c, val) {
@@ -36,6 +40,21 @@ function campoHTML(c, val) {
     }).join("");
     return `<div class="fld">${lbl}<select name="${c.n}" class="search">${opts}</select></div>`;
   }
+  if (c.type === "combo") {
+    // input com sugestões (datalist): dá para escolher da lista OU escrever um valor novo
+    const listId = "dl_" + c.n;
+    const opts = (c.options || []).map(o => `<option value="${esc(typeof o === "string" ? o : o.v)}">${esc(typeof o === "string" ? o : (o.l || o.v))}</option>`).join("");
+    return `<div class="fld">${lbl}<input name="${c.n}" list="${listId}" value="${esc(v)}" autocomplete="off" ${c.placeholder ? `placeholder="${esc(c.placeholder)}"` : ""}><datalist id="${listId}">${opts}</datalist></div>`;
+  }
+  if (c.type === "checklist") {
+    // seleção múltipla: várias caixas; guarda um array de valores escolhidos
+    const arr = Array.isArray(v) ? v : [];
+    const boxes = (c.options || []).map(o => {
+      const ov = typeof o === "string" ? o : o.v, ol = typeof o === "string" ? o : (o.l || o.v);
+      return `<label class="chk"><input type="checkbox" name="${c.n}" value="${esc(ov)}" ${arr.includes(ov) ? "checked" : ""}> ${esc(ol)}</label>`;
+    }).join("");
+    return `<div class="fld">${lbl}<div class="checklist">${boxes}</div></div>`;
+  }
   if (c.type === "textarea") return `<div class="fld">${lbl}<textarea name="${c.n}" placeholder="${esc(c.placeholder || "")}">${esc(v)}</textarea></div>`;
   if (c.type === "file") return `<div class="fld">${lbl}<input type="file" name="${c.n}" multiple><small class="muted">No protótipo guarda-se só o nome dos ficheiros.</small></div>`;
   return `<div class="fld">${lbl}<input name="${c.n}" type="${c.type || "text"}" value="${esc(v)}" ${c.readonly ? "readonly" : ""} ${c.placeholder ? `placeholder="${esc(c.placeholder)}"` : ""} ${c.inputmode ? `inputmode="${c.inputmode}"` : ""}></div>`;
@@ -48,6 +67,7 @@ function abrirForm(titulo, campos, valores, onGravar) {
     const frm = $("#frmSheet"); if (!frm) return;
     campos.forEach(c => {
       if (!c.n || !visivel(c)) return;
+      if (c.type === "checklist") { valores[c.n] = Array.from(frm.querySelectorAll(`input[name="${c.n}"]:checked`)).map(i => i.value); return; }
       const el = frm.elements[c.n]; if (!el) return;
       if (c.type === "checkbox") valores[c.n] = el.checked;
       else if (c.type === "file") valores[c.n] = Array.from(el.files || []).map(f => f.name);
@@ -65,9 +85,10 @@ function abrirForm(titulo, campos, valores, onGravar) {
     const frm = $("#frmSheet");
     campos.forEach(c => {
       if (!c.n) return;
-      const el = frm.elements[c.n]; if (!el) return;
       const recalc = () => { coletar(); if (c.onChange) c.onChange(valores); desenha(); };
-      if (c.type === "select" || c.type === "checkbox") el.addEventListener("change", recalc);
+      if (c.type === "checklist") { frm.querySelectorAll(`input[name="${c.n}"]`).forEach(inp => inp.addEventListener("change", recalc)); return; }
+      const el = frm.elements[c.n]; if (!el) return;
+      if (c.type === "select" || c.type === "checkbox" || c.type === "combo") el.addEventListener("change", recalc);
       if (c.recarrega) el.addEventListener("blur", recalc);
     });
     frm.onsubmit = async ev => {
@@ -86,6 +107,8 @@ function abrirForm(titulo, campos, valores, onGravar) {
 
 const optsClientes = () => [{ v: "", l: "Escolha o cliente" },
   ...(S.clientes || []).slice().sort((a, b) => String(a.Nome).localeCompare(String(b.Nome))).map(c => ({ v: c.id, l: c.Nome }))];
+/* nomes de clientes para o combo (ponto 13): dá para escolher ou escrever um novo */
+const nomesClientes = () => (S.clientes || []).slice().sort((a, b) => String(a.Nome).localeCompare(String(b.Nome))).map(c => c.Nome);
 
 /* ---------- Registar visita ---------- */
 function formVisita(preset) {
@@ -164,6 +187,18 @@ function formPedidoOrcamento(preset) {
     if (!d.quantidade) d.quantidade = a.ultimaQuantidade;
     if (!d.materia) d.materia = a.matPrima ? (a.matPrima + (a.matPrimaDescricao ? " - " + a.matPrimaDescricao : "")) : "";
   };
+  // ponto 13: o cliente pode ser escolhido da lista OU escrito (cliente novo)
+  const resolveCliente = d => {
+    const nome = String(d.clienteNome || "").trim();
+    const c = (S.clientes || []).find(x => String(x.Nome).toLowerCase() === nome.toLowerCase());
+    if (c) { d.cliente = c.id; d.novoCliente = ""; d.clienteNome = c.Nome; preencheCliente(d); }
+    else { d.cliente = ""; d.novoCliente = nome; d.numCliente = ""; } // cliente novo: restantes campos ficam livres
+  };
+  // ponto 9: contacto direto alimentar → "uso previsto" começa por "Embalagem primária para…"
+  const preencheUsoPrevisto = d => {
+    if (d.prodAlimentares && d.contactoProdAlimentar === "Direto" && !String(d.prodUsoPrevisto || "").trim())
+      d.prodUsoPrevisto = "Embalagem primária para ";
+  };
 
   const campos = [
     { sec: "Dados do pedido" },
@@ -173,14 +208,18 @@ function formPedidoOrcamento(preset) {
     { n: "pedOrcamento", l: "Pedido de orçamento", type: "checkbox" },
     { n: "pedModelo", l: "Pedido de modelo", type: "checkbox" },
     { n: "pedPrint", l: "Pedido de print", type: "checkbox" },
+    { n: "pedPDF", l: "Pedido de PDF", type: "checkbox" },
+    { n: "norma", l: "Norma", type: "checkbox" },
     { n: "tipoArtigo", l: "Tipo de artigo", type: "select", options: TIPO_ARTIGO },
+    { n: "altEstrutura", l: "Estrutura", type: "checkbox", se: d => d.tipoArtigo === "Existente com alterações" },
+    { n: "altImagemAcab", l: "Imagem / Acabamentos", type: "checkbox", se: d => d.tipoArtigo === "Existente com alterações" },
 
     { sec: "Dados do cliente" },
-    { n: "cliente", l: "Cliente", type: "select", options: optsClientes(), onChange: preencheCliente },
+    { n: "clienteNome", l: "Cliente", type: "combo", options: nomesClientes(), placeholder: "Escolha da lista ou escreva (cliente novo)", onChange: resolveCliente },
     { n: "numCliente", l: "Nº de cliente", type: "text", readonly: true },
     { n: "nif", l: "NIF", type: "text" },
     { n: "morada", l: "Morada", type: "text" },
-    { n: "localEntrega", l: "Local de entrega", type: "text" },
+    { n: "localEntrega", l: "Local de entrega (obrigatório)", type: "text" },
     { n: "telefone", l: "Telefone", type: "text" },
     { n: "condicoes", l: "Condições de fornecimento", type: "select", options: CONDICOES },
     { n: "pessoaContacto", l: "Pessoa de contacto", type: "text", placeholder: "Nome (texto livre)" },
@@ -193,19 +232,27 @@ function formPedidoOrcamento(preset) {
     { n: "artigo", l: "Artigo (código)", type: "text", placeholder: "Se já existe", recarrega: true, onChange: preencheArtigo },
     { n: "descricao", l: "Descrição / o que pretende", type: "textarea", placeholder: "Medidas, cores, detalhes…" },
     { n: "quantidade", l: "Quantidades", type: "text", inputmode: "numeric", placeholder: "ex.: 1000, 5000" },
-    { n: "formatoCaixa", l: "Formato da caixa (C x L x A x P)", type: "text" },
+    { n: "formatoCaixa", l: "Formato da caixa (C x L x A)", type: "text" },
     { n: "tipoCaixa", l: "Tipo de caixa", type: "select", options: ["", ...op.tiposCaixa] },
     { n: "materia", l: "Matéria-prima", type: "select", options: ["", ...op.materiasPrimas] },
     { n: "revestimento", l: "Revestimento", type: "select", options: REVESTIMENTOS },
     { n: "acabamento", l: "Acabamento", type: "select", options: ACABAMENTOS },
-    { n: "numCores", l: "Nº de cores", type: "text" },
+    { n: "numCoresInt", l: "Nº de cores (interior)", type: "text", inputmode: "numeric" },
+    { n: "numCoresExt", l: "Nº de cores (exterior)", type: "text", inputmode: "numeric" },
     { n: "asaPlastico", l: "Asa plástica", type: "checkbox" },
     { n: "tipoAsa", l: "Tipo de asa", type: "select", options: TIPO_ASA, se: d => d.asaPlastico },
     { n: "corAsa", l: "Cor da asa", type: "text", se: d => d.asaPlastico },
     { n: "cordao", l: "Cordão", type: "checkbox" },
     { n: "cordaoTamanho", l: "Tamanho do cordão", type: "text", se: d => d.cordao },
     { n: "cordaoCor", l: "Cor do cordão", type: "text", se: d => d.cordao },
+    { n: "fita", l: "Fita", type: "checkbox" },
+    { n: "janelaAcetato", l: "Janela com acetato", type: "checkbox" },
+    { n: "aptoCongelacao", l: "Apto para congelação", type: "checkbox", se: d => d.janelaAcetato },
     { n: "variante", l: "Variante", type: "text" },
+
+    { sec: "Exigência Embalamento / Paletes" },
+    { n: "exigPaletes", l: "Exigências (selecione as que se aplicam)", type: "checklist", options: EXIGENCIAS_EMBALAMENTO },
+    { n: "exigOutros", l: "Outros — qual?", type: "text", se: d => Array.isArray(d.exigPaletes) && d.exigPaletes.includes("Outros") },
 
     { sec: "Requisitos especiais" },
     { n: "enchimentoAutomatico", l: "Enchimento automático", type: "checkbox" },
@@ -215,7 +262,7 @@ function formPedidoOrcamento(preset) {
 
     { sec: "Segurança alimentar" },
     { n: "prodAlimentares", l: "Produtos alimentares", type: "checkbox" },
-    { n: "contactoProdAlimentar", l: "Tipo de contacto", type: "select", options: PROD_CONTACTO, se: d => d.prodAlimentares },
+    { n: "contactoProdAlimentar", l: "Tipo de contacto (direto ou indireto)", type: "select", options: PROD_CONTACTO, se: d => d.prodAlimentares, onChange: preencheUsoPrevisto },
     { n: "prodTipoContacto", l: "Contacto com o alimento", type: "select", options: PROD_TIPO_CONTACTO, se: d => d.prodAlimentares && d.contactoProdAlimentar === "Direto" },
     { n: "prodArmazenamento", l: "Armazenamento", type: "select", options: PROD_ARMAZENAMENTO, se: d => d.prodAlimentares && d.contactoProdAlimentar === "Direto" },
     { n: "prodTempCongelacao", l: "Temperatura de congelação", type: "text", se: d => d.prodAlimentares && d.contactoProdAlimentar === "Direto" && d.prodArmazenamento === "Congelado" },
@@ -226,12 +273,11 @@ function formPedidoOrcamento(preset) {
     { sec: "Observações" },
     { n: "obs", l: "Observações", type: "textarea" },
 
-    { sec: "Clientes novos" },
-    { n: "novoGama", l: "Gama de produto", type: "text" },
-    { n: "novoVolumeAnual", l: "Volume anual estimado", type: "text" },
+    { sec: "Clientes novos / Projetos novos" },
+    { n: "novoOrigem", l: "O que trouxe o cliente até nós", type: "select", options: ORIGEM_CLIENTE },
     { n: "novoContinuidade", l: "Compra com continuidade", type: "checkbox" },
-    { n: "novoPontual", l: "Compra pontual", type: "checkbox" },
-    { n: "novoObs", l: "Observações (cliente novo)", type: "textarea" },
+    { n: "novoPotencial", l: "Cliente com potencial para mais referências de caixas", type: "checkbox" },
+    { n: "novoObs", l: "Observações - Clientes novos / Projetos novos", type: "textarea" },
 
     { sec: "Anexos" },
     { n: "anexos", l: "Ficheiros a anexar", type: "file" }
@@ -239,16 +285,17 @@ function formPedidoOrcamento(preset) {
 
   const valores = {
     vendedor: meNome || "", tipoProjeto: "Novo", tipoArtigo: "Novo", pedOrcamento: true,
-    condicoes: "Habituais", cliente: preset.cliente || "", ...pre
+    condicoes: "Habituais", cliente: preset.cliente || "", exigPaletes: [], ...pre
   };
-  if (valores.cliente) preencheCliente(valores);
+  if (valores.cliente) { preencheCliente(valores); valores.clienteNome = cliNome(valores.cliente); }
 
   abrirForm("Pedir orçamento", campos, valores, async d => {
     const val = L.validaPedidoOrcamento(d);
     if (!val.ok) return { erros: val.erros };
     const resumo = (d.tipoCaixa || d.descricao || "Pedido").toString().slice(0, 60);
+    const nomeCli = d.cliente ? cliNome(d.cliente) : (String(d.novoCliente || d.clienteNome || "").trim() || "Cliente novo");
     await Store.add("projetos", {
-      DescricaoProjeto: "PO (CRM) " + resumo, Cliente: d.cliente, Nome: cliNome(d.cliente),
+      DescricaoProjeto: "PO (CRM) " + resumo, Cliente: d.cliente || null, Nome: nomeCli,
       Estado: "Pendente", Vendedor: meNome, origem: "crm",
       CodigoProjeto: d.codigoProjeto || null,   // código para associar ao iPortal
       "ObservaçoesProjeto": [d.artigo, d.descricao].filter(Boolean).join(" - "),
