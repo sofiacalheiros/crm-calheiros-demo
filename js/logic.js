@@ -35,7 +35,9 @@ function visiveis(RAW, sessao) {
   S.clientes = R("clientes").filter(c => meuCliente(c.id));
   S.projetos = R("projetos").filter(p => meuCliente(p.Cliente));
   S.vendas = R("vendas").filter(v => meuCliente(v.Entidade));
-  S.atividades = R("atividades").filter(a => meuCliente(a.Entidade));
+  // atividades da carteira + tarefas de que o vendedor é dono (a Gestão pode
+  // atribuir-lhe tarefas sem cliente ou de clientes de outra carteira).
+  S.atividades = R("atividades").filter(a => meuCliente(a.Entidade) || (a.tipo === "tarefa" && a.Vendedor === eu));
   S.pendentes = R("pendentes").filter(p => meuCliente(p.Entidade));
   S.cortantes = R("cortantes");   // cortantes não têm dados do cliente — lista comum
   S.artigos = R("artigos").filter(a => meuCliente(a.CodCliente));
@@ -230,13 +232,51 @@ function listaStock(stock, filtroCliente) {
 }
 
 /* ---------- agenda / tarefas (TDU_PR_Visitas, tipo "tarefa") ----------
-   A fazer (por data, atrasadas primeiro) e concluídas (mais recentes primeiro). */
+   porAlocar: sem data (banco de tarefas). aFazer: com data (atrasadas primeiro).
+   concluidas: mais recentes primeiro. atrasadas: contagem das aFazer já vencidas. */
 function agendaTarefas(atividades, hojeIso) {
   const tar = (atividades || []).filter(a => a.tipo === "tarefa");
-  const aFazer = tar.filter(a => !a.concluida).sort((a, b) => String(a.data || "").localeCompare(String(b.data || "")));
+  const porConcluir = tar.filter(a => !a.concluida);
+  const porAlocar = porConcluir.filter(a => !a.data).sort((a, b) => String(a.criadoEm || "").localeCompare(String(b.criadoEm || "")));
+  const aFazer = porConcluir.filter(a => a.data).sort((a, b) => String(a.data || "").localeCompare(String(b.data || "")));
   const concluidas = tar.filter(a => a.concluida).sort((a, b) => String(b.concluidaEm || b.data || "").localeCompare(String(a.concluidaEm || a.data || "")));
   const atrasadas = aFazer.filter(a => a.data && a.data < String(hojeIso)).length;
-  return { aFazer, concluidas, atrasadas };
+  return { porAlocar, aFazer, concluidas, atrasadas };
+}
+
+/* Tarefas visíveis para a sessão: o gestor vê todas; o vendedor vê só aquelas
+   de que é dono (Vendedor). Usa-se no ecrã de tarefas e no calendário. */
+function tarefasVisiveis(atividades, sessao) {
+  const tar = (atividades || []).filter(a => a.tipo === "tarefa");
+  if (!sessao) return [];
+  if (sessao.perfil === "gestor") return tar.slice();
+  return tar.filter(t => t.Vendedor === sessao.nome);
+}
+
+/* Tarefa automática criada quando um projeto passa a "Não Aceite":
+   ir recolher a caixa ao cliente e pedir o estudo do projeto. Fica por alocar. */
+function tarefaAutoNaoAceite(projeto) {
+  return {
+    tipo: "tarefa", subtipo: "caixaConcorrente", origem: "auto:naoAceite",
+    descricao: "Ir recolher a caixa ao cliente e pedir o estudo do projeto",
+    Vendedor: projeto.Vendedor, Entidade: projeto.Cliente, Projeto: projeto.id || projeto.Projeto || null,
+    data: null, concluida: false, criadoPor: "auto", criadoEm: new Date().toISOString()
+  };
+}
+
+/* Validação de uma nova tarefa: descrição e vendedor dono obrigatórios. */
+function validaTarefa(d) {
+  const erros = {};
+  if (!d.descricao || !String(d.descricao).trim()) erros.descricao = "Descreva a tarefa.";
+  if (!d.Vendedor || !String(d.Vendedor).trim()) erros.Vendedor = "Escolha o vendedor.";
+  return { ok: Object.keys(erros).length === 0, erros };
+}
+
+/* Validação ao concluir: o feedback (nota de resultado) é obrigatório. */
+function validaConclusaoTarefa(d) {
+  const erros = {};
+  if (!d.resultadoNotas || !String(d.resultadoNotas).trim()) erros.resultadoNotas = "Escreva o feedback.";
+  return { ok: Object.keys(erros).length === 0, erros };
 }
 
 /* ---------- pesquisa de cortantes ---------- */
@@ -532,6 +572,6 @@ function podeVerPrecoUnitario(sessao) {
   return !!sessao && sessao.perfil === "gestor";
 }
 
-const _API = { normaliza, diasEntre, visiveis, pesquisaClientes, pesquisaCortantes, cortantesPorMedidas, recebimentosEscaloes, artigosProduzidos, listaArtigos, catalogoArtigos, listaStock, agendaTarefas, fichaCliente, dashboardClientes, dashboardVendedores, resumoProjetos, pipelineProjetos, validaMudancaEstado, patchMudancaEstado, motivosRecusa, ESTADOS_PROJETO, MOTIVOS_RECUSA, recebimentosPorCliente, recebimentosGeral, recebimentosCartoes, avisosCliente, creditoCliente, opcoesOrcamento, validaPedidoOrcamento, podeVerPrecoUnitario };
+const _API = { normaliza, diasEntre, visiveis, pesquisaClientes, pesquisaCortantes, cortantesPorMedidas, recebimentosEscaloes, artigosProduzidos, listaArtigos, catalogoArtigos, listaStock, agendaTarefas, fichaCliente, dashboardClientes, dashboardVendedores, resumoProjetos, pipelineProjetos, validaMudancaEstado, patchMudancaEstado, motivosRecusa, ESTADOS_PROJETO, MOTIVOS_RECUSA, recebimentosPorCliente, recebimentosGeral, recebimentosCartoes, avisosCliente, creditoCliente, opcoesOrcamento, validaPedidoOrcamento, podeVerPrecoUnitario, tarefasVisiveis, tarefaAutoNaoAceite, validaTarefa, validaConclusaoTarefa };
 if (typeof module !== "undefined" && module.exports) module.exports = _API;
 if (typeof window !== "undefined") window.L = _API;

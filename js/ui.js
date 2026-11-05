@@ -163,7 +163,7 @@ function vInicio(el) {
       <button class="kpi" data-tab="recebimentos"><b class="${totalAtraso ? "late" : ""}">${eur(totalAtraso)}</b><span>Pagamentos em atraso</span></button>
       <button class="kpi" data-tab="recebimentos"><b>${eur(rg.total)}</b><span>Total por receber</span></button>
       <button class="kpi" data-tab="projetos"><b>${pend.length}</b><span>Projetos pendentes</span></button>
-      <button class="kpi" data-tab="tarefas"><b>${ag.aFazer.length}</b><span>Tarefas a fazer</span></button>
+      <button class="kpi" data-tab="tarefas"><b>${ag.aFazer.length + ag.porAlocar.length}</b><span>Tarefas a fazer</span></button>
     </div>
     <h2>Ações rápidas</h2>
     <div class="menu">
@@ -354,7 +354,7 @@ function vFerramentas(el) {
       ${atalho("artigos", "Artigos", `${nArt} artigos · ficha técnica e última produção`)}
       ${atalho("cortantes", "Cortantes", `${nCort} cortantes · por tipo de caixa ou medidas`)}
       ${atalho("stock", "Stock", `${nStock} artigos com stock · por armazém e lote`)}
-      ${atalho("tarefas", "Tarefas", `${ag.aFazer.length} a fazer${ag.atrasadas ? " · " + ag.atrasadas + " atrasadas" : ""}`)}
+      ${atalho("tarefas", "Tarefas", `${ag.aFazer.length + ag.porAlocar.length} a fazer${ag.atrasadas ? " · " + ag.atrasadas + " atrasadas" : ""}${ag.porAlocar.length ? " · " + ag.porAlocar.length + " por alocar" : ""}`)}
       ${atalho("projetos", "Projetos", `${nProj} · pipeline por estado`)}
       ${atalho("recebimentos", "Recebimentos", `${nReceb} clientes · avisos de atraso`)}
     </div>`;
@@ -472,28 +472,39 @@ function sheetStock(artigo) {
 }
 
 /* ---------- Tarefas / agenda ---------- */
-function rowTarefa(t) {
+function rowTarefa(t, porAlocar) {
   const atras = !t.concluida && t.data && t.data < isoHoje();
+  const cli = t.Entidade ? cliNome(t.Entidade) : "";
+  const meta = porAlocar ? "pendente de alocar" : (t.data ? dataPT(t.data) : "");
+  const sub = [cli, meta].filter(Boolean).join(" · ");
+  const fb = t.concluida && t.resultadoNotas ? `<span class="s" style="display:block">${esc(t.resultado || "Concluída")}: ${esc(t.resultadoNotas)}</span>` : "";
   return `<div class="row ${t.concluida ? "done" : ""}">
     <button class="check ${t.concluida ? "on" : ""}" data-act="toggleTarefa" data-id="${esc(t.id)}" aria-label="${t.concluida ? "Reabrir" : "Concluir"}"></button>
-    <span class="grow"><span class="t">${esc(t.descricao || "Tarefa")}</span><span class="s ${atras ? "late" : ""}">${esc(cliNome(t.Entidade))}${t.data ? " · " + dataPT(t.data) : ""}${atras ? " · atrasada" : ""}</span></span>
-    ${t.Vendedor ? `<span class="s">${esc(primeiro(t.Vendedor))}</span>` : ""}
+    <span class="grow"><span class="t">${esc(t.descricao || "Tarefa")}</span><span class="s ${atras || porAlocar ? "late" : ""}">${esc(sub)}${atras ? " · atrasada" : ""}</span>${fb}</span>
+    ${porAlocar ? `<button class="btn mini" data-act="alocarData" data-id="${esc(t.id)}">Alocar data</button>` : ""}
+    ${t.Vendedor && ehGestor() ? `<span class="s">${esc(primeiro(t.Vendedor))}</span>` : ""}
   </div>`;
 }
 function vTarefas(el) {
   const ag = L.agendaTarefas(S.atividades || [], isoHoje());
+  const totalAfazer = ag.aFazer.length + ag.porAlocar.length;
   el.innerHTML = `
     <button class="voltar" data-tab="ferramentas">‹ Ferramentas</button>
     <h1>Tarefas</h1>
-    <p class="sub">${ag.aFazer.length} a fazer${ag.atrasadas ? ` · ${ag.atrasadas} atrasadas` : ""}${ehGestor() ? " (toda a equipa)" : ""}</p>
+    <p class="sub">${totalAfazer} a fazer${ag.atrasadas ? ` · ${ag.atrasadas} atrasadas` : ""}${ag.porAlocar.length ? ` · ${ag.porAlocar.length} por alocar` : ""}${ehGestor() ? " (toda a equipa)" : ""}</p>
+    <div class="actions" style="margin:8px 0 14px"><button class="btn pri" data-act="novaTarefa">+ Nova tarefa</button></div>
+    ${ag.porAlocar.length ? `<h2>Banco de tarefas <span class="muted" style="font-weight:400">(pendente de alocar)</span></h2>
+    <div class="list banco-tarefas">${ag.porAlocar.map(t => rowTarefa(t, true)).join("")}</div>` : ""}
     <h2>A fazer</h2>
-    <div class="list">${ag.aFazer.length ? ag.aFazer.map(rowTarefa).join("") : '<div class="empty">Sem tarefas por fazer.</div>'}</div>
-    ${ag.concluidas.length ? `<h2>Concluídas</h2><div class="list">${ag.concluidas.slice(0, 20).map(rowTarefa).join("")}</div>` : ""}`;
+    <div class="list">${ag.aFazer.length ? ag.aFazer.map(t => rowTarefa(t)).join("") : '<div class="empty">Sem tarefas agendadas.</div>'}</div>
+    ${ag.concluidas.length ? `<h2>Concluídas</h2><div class="list">${ag.concluidas.slice(0, 20).map(t => rowTarefa(t)).join("")}</div>` : ""}`;
 }
 async function toggleTarefa(id) {
   const t = (S.atividades || []).find(a => String(a.id) === String(id));
   if (!t || !Store) return;
-  try { await Store.update("atividades", id, { concluida: !t.concluida, concluidaEm: !t.concluida ? isoHoje() : null }); }
+  // Concluir obriga a feedback → abre formulário. Reabrir é direto.
+  if (!t.concluida) { if (typeof formConcluirTarefa === "function") formConcluirTarefa(id); return; }
+  try { await Store.update("atividades", id, { concluida: false, concluidaEm: null }); }
   catch (e) { toast("Não foi possível guardar."); }
 }
 
@@ -635,6 +646,9 @@ function formMudarEstado(id, estadoNovo) {
       data: isoHoje(), concluida: true, criadoEm: new Date().toISOString(),
       descricao: `${p.Estado} → ${estadoNovo}${motivoTxt}${perdTxt}: ${dd.justificacao}`
     });
+    // "Não Aceite" gera automaticamente uma tarefa (por alocar) para o vendedor:
+    // ir recolher a caixa ao cliente e pedir o estudo do projeto.
+    if (estadoNovo === "Não Aceite") await Store.add("atividades", L.tarefaAutoNaoAceite(p));
     toast("Projeto marcado como " + estadoNovo);
     sheetProjeto(id);
   });
@@ -830,6 +844,7 @@ function sheetNovo() {
       <div class="menu">
         <button class="btn" data-act="novoOrcamento"><b>Pedir orçamento</b><span class="menu-s">Cria um projeto pendente</span></button>
         <button class="btn" data-act="novaVisita"><b>Registar visita</b><span class="menu-s">Visita ou despesa a um cliente</span></button>
+        <button class="btn" data-act="novaTarefa"><b>Nova tarefa</b><span class="menu-s">${ehGestor() ? "Para si ou para um vendedor" : "Uma tarefa sua"}</span></button>
       </div>`;
   });
 }
@@ -865,6 +880,8 @@ document.addEventListener("click", ev => {
       case "verCortante": sheetCortante(id); break;
       case "verStock": sheetStock(id); break;
       case "toggleTarefa": toggleTarefa(id); break;
+      case "novaTarefa": if (typeof formTarefa === "function") formTarefa({}); break;
+      case "alocarData": if (typeof formAlocarData === "function") formAlocarData(id); break;
       case "verProjeto": sheetProjeto(id); break;
       case "estado": formMudarEstado(id, v); break;
       case "cortCruzada": cortCruzada = (v === "true"); renderAll(); break;

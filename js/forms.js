@@ -153,6 +153,67 @@ function formAviso(ent) {
   });
 }
 
+/* ---------- Tarefas (Fase 1) ---------- */
+const optsVendedores = () => [{ v: "", l: "Escolha o vendedor" },
+  ...(S.vendedores || []).slice().sort((a, b) => String(a.nome).localeCompare(String(b.nome))).map(v => ({ v: v.nome, l: v.nome }))];
+
+/* Nova tarefa. O vendedor cria para si; a Gestão escolhe o vendedor destino.
+   Sem data = fica "por alocar" no banco de tarefas desse vendedor. */
+function formTarefa(preset) {
+  preset = preset || {};
+  const souGestor = typeof ehGestor === "function" && ehGestor();
+  const campos = [
+    souGestor
+      ? { n: "Vendedor", l: "Para o vendedor", type: "select", options: optsVendedores() }
+      : { n: "Vendedor", l: "Vendedor", type: "text", readonly: true },
+    { n: "descricao", l: "Tarefa", type: "textarea", placeholder: "O que há a fazer…" },
+    { n: "data", l: "Data (deixe vazio = por alocar)", type: "date" },
+    { n: "Entidade", l: "Cliente (opcional)", type: "select", options: optsClientes() }
+  ];
+  const valores = { Vendedor: souGestor ? "" : (meNome || ""), data: "", Entidade: "", ...preset };
+  abrirForm("Nova tarefa", campos, valores, async d => {
+    const dono = souGestor ? d.Vendedor : (meNome || "");
+    const val = L.validaTarefa({ descricao: d.descricao, Vendedor: dono });
+    if (!val.ok) return { erros: val.erros };
+    const ent = d.Entidade ? (isNaN(+d.Entidade) ? d.Entidade : +d.Entidade) : null;
+    await Store.add("atividades", {
+      tipo: "tarefa", descricao: d.descricao.trim(), Vendedor: dono, criadoPor: meNome || "",
+      data: d.data || null, concluida: false, Entidade: ent, Nome: ent ? cliNome(ent) : null,
+      origem: "manual", criadoEm: new Date().toISOString()
+    });
+    closeSheet(); toast(d.data ? "Tarefa criada." : "Tarefa criada (por alocar).");
+  });
+}
+
+/* Concluir uma tarefa: o feedback (nota de resultado) é obrigatório. */
+function formConcluirTarefa(id) {
+  const t = (S.atividades || []).find(a => String(a.id) === String(id));
+  if (!t) return;
+  const campos = [
+    { n: "resultado", l: "Resultado", type: "select", options: [{ v: "Concluída", l: "Concluída" }, { v: "Não foi possível", l: "Não foi possível" }, { v: "A reagendar", l: "A reagendar" }] },
+    { n: "resultadoNotas", l: "Feedback (obrigatório)", type: "textarea", placeholder: "O que aconteceu / o que ficou decidido…" }
+  ];
+  abrirForm("Concluir tarefa", campos, { resultado: "Concluída", resultadoNotas: "" }, async d => {
+    const val = L.validaConclusaoTarefa(d);
+    if (!val.ok) return { erros: val.erros };
+    await Store.update("atividades", id, {
+      concluida: true, concluidaEm: isoHoje(), resultado: d.resultado, resultadoNotas: d.resultadoNotas.trim()
+    });
+    closeSheet(); toast("Tarefa concluída.");
+  });
+}
+
+/* Alocar data a uma tarefa do banco (passa de "por alocar" a "agendada"). */
+function formAlocarData(id) {
+  const t = (S.atividades || []).find(a => String(a.id) === String(id));
+  if (!t) return;
+  abrirForm("Alocar data", [{ n: "data", l: "Data", type: "date" }], { data: isoHoje() }, async d => {
+    if (!d.data) return { erros: { data: "Escolha uma data." } };
+    await Store.update("atividades", id, { data: d.data });
+    closeSheet(); toast("Tarefa agendada.");
+  });
+}
+
 /* ---------- Pedir orçamento (formulário completo, como no CRM atual) ---------- */
 function formPedidoOrcamento(preset) {
   preset = preset || {};
