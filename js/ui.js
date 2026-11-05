@@ -882,7 +882,14 @@ document.addEventListener("click", ev => {
   if (t.dataset.tab) { tab = t.dataset.tab; pesquisa = ""; projFiltro = ""; recSoAtraso = true; cortTipo = ""; cortMedidas = { A: "", B: "", C: "" }; cortCruzada = false; closeSheet(); window.scrollTo(0, 0); render(); return; }
   if (ent) { sheetCliente(ent); }
 });
-$("#back") && $("#back").addEventListener("click", ev => { if (ev.target.id === "back") closeSheet(); });
+/* Fecha a folha só quando o toque/clique COMEÇA e TERMINA no fundo escuro.
+   Assim, selecionar texto dentro de um campo (arrastar e largar fora do campo)
+   já não fecha a página. */
+let backBaixoNoFundo = false;
+if ($("#back")) {
+  $("#back").addEventListener("pointerdown", ev => { backBaixoNoFundo = (ev.target.id === "back"); });
+  $("#back").addEventListener("click", ev => { if (ev.target.id === "back" && backBaixoNoFundo) closeSheet(); });
+}
 
 /* ---------- Arranque ---------- */
 (function boot() {
