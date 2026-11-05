@@ -18,10 +18,9 @@ const BARREIRAS = ["", "Vácuo", "Plástico", "Papel alimentar", "Frasco", "Emba
 /* 🔧 lista oficial a confirmar com o IT */
 const REVESTIMENTOS = ["", "Sem revestimento", "Verniz aquoso", "Verniz UV", "Plastificação brilho", "Plastificação mate", "Barreira a gorduras", "Barreira à humidade"];
 const ACABAMENTOS = ["", "Sem acabamento", "Colada", "Agrafada", "Fundo automático (pré-colada)", "Pega recortada", "Picotado de abertura fácil", "Fita de rasgar", "Gravação a seco / relevo"];
-/* 🔧 LISTA PROVISÓRIA — a confirmar/fornecer pela utilizadora (ponto 6). "Outros" abre campo livre. */
-const EXIGENCIAS_EMBALAMENTO = ["Palete Euro (1200×800)", "Palete 1000×1200", "Filme estirável", "Cantoneiras / esquineiros", "Intercalares entre camadas", "Nº de caixas por palete definido", "Altura máxima de palete", "Cinta / cintagem", "Outros"];
-/* 🔧 LISTA PROVISÓRIA — a confirmar/fornecer pela utilizadora (ponto 11). */
-const ORIGEM_CLIENTE = ["", "Recomendação de cliente", "Feira / evento", "Website / pesquisa online", "Contacto do vendedor", "Campanha / marketing", "Outro"];
+/* "Outros" abre campo livre (exigOutros) — mantém-se sempre em último. */
+const EXIGENCIAS_EMBALAMENTO = ["Caixa cartão", "Maços cintados", "Paletes (800×1200 mm)", "Paletes (1000×1200 mm)", "Europaletes (800×1200 mm)", "Outros"];
+const ORIGEM_CLIENTE = ["", "Anúncios / Publicações em revistas", "Contacto direto - telefone, email", "Email marketing", "Recomendação de cliente", "Feira / evento", "Website / pesquisa online", "Prospeção comercial", "Redes sociais", "Outro"];
 
 /* ---------- construtor genérico de formulário em folha ---------- */
 function campoHTML(c, val) {
