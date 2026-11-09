@@ -1061,7 +1061,7 @@ function vArtigos(el) {
   el.innerHTML = `
     <button class="voltar" data-tab="ferramentas">‹ Ferramentas</button>
     <h1>Artigos</h1>
-    <p class="sub">${arts.length} artigos${ehGestor() ? " (toda a equipa)" : " · nome do cliente só nos seus"}</p>
+    <p class="sub">${arts.length} artigos${ehGestor() ? " (toda a equipa)" : ""}</p>
     <input class="search" id="buscaArt" placeholder="Procurar artigo, caixa, matéria-prima…" value="${esc(pesquisa)}" autocomplete="off">
     <div class="list">${lista.length ? lista.map(rowArtigo).join("") : '<div class="empty">Nenhum artigo encontrado.</div>'}</div>`;
   ligarPesquisa("#buscaArt");
