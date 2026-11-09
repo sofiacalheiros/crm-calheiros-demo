@@ -558,14 +558,6 @@ async function toggleTarefa(id) {
   try { await Store.update("atividades", id, { concluida: false, concluidaEm: null }); }
   catch (e) { toast("Não foi possível guardar."); }
 }
-async function toggleTarefa(id) {
-  const t = (S.atividades || []).find(a => String(a.id) === String(id));
-  if (!t || !Store) return;
-  // Concluir obriga a feedback → abre formulário. Reabrir é direto.
-  if (!t.concluida) { if (typeof formConcluirTarefa === "function") formConcluirTarefa(id); return; }
-  try { await Store.update("atividades", id, { concluida: false, concluidaEm: null }); }
-  catch (e) { toast("Não foi possível guardar."); }
-}
 
 /* ---------- Feiras ---------- */
 function rowFeira(f) {

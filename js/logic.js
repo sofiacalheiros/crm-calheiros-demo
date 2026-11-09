@@ -282,6 +282,15 @@ function validaConclusaoTarefa(d) {
   return { ok: Object.keys(erros).length === 0, erros };
 }
 
+/* Reagendar (não conclui): exige nova data e o motivo. A tarefa fica aberta
+   com a nova data — NUNCA passa a concluída. */
+function validaReagendarTarefa(d) {
+  const erros = {};
+  if (!d.novaData) erros.novaData = "Escolha a nova data.";
+  if (!d.resultadoNotas || !String(d.resultadoNotas).trim()) erros.resultadoNotas = "Escreva o motivo do reagendamento.";
+  return { ok: Object.keys(erros).length === 0, erros };
+}
+
 /* ---------- Feiras e relatórios de visita a feira ---------- */
 /* Feiras visíveis: o gestor vê todas; o vendedor vê as que lhe foram atribuídas. */
 function feirasVisiveis(feiras, sessao) {
@@ -681,6 +690,6 @@ function usoPrevisto(contacto, textoAtual) {
   return t;
 }
 
-const _API = { normaliza, diasEntre, visiveis, pesquisaClientes, pesquisaCortantes, cortantesPorMedidas, recebimentosEscaloes, artigosProduzidos, listaArtigos, catalogoArtigos, listaStock, agendaTarefas, fichaCliente, dashboardClientes, dashboardVendedores, resumoProjetos, pipelineProjetos, validaMudancaEstado, patchMudancaEstado, motivosRecusa, ESTADOS_PROJETO, MOTIVOS_RECUSA, recebimentosPorCliente, recebimentosGeral, recebimentosCartoes, avisosCliente, creditoCliente, opcoesOrcamento, validaPedidoOrcamento, podeVerPrecoUnitario, normDimensao, dimensaoCliente, usoPrevisto, tarefasVisiveis, tarefaAutoNaoAceite, validaTarefa, validaConclusaoTarefa, calendarioMes, feirasVisiveis, tarefaAutoRelatorioFeira, avaliacaoFeira, validaFeira, validaRelatorioFeira };
+const _API = { normaliza, diasEntre, visiveis, pesquisaClientes, pesquisaCortantes, cortantesPorMedidas, recebimentosEscaloes, artigosProduzidos, listaArtigos, catalogoArtigos, listaStock, agendaTarefas, fichaCliente, dashboardClientes, dashboardVendedores, resumoProjetos, pipelineProjetos, validaMudancaEstado, patchMudancaEstado, motivosRecusa, ESTADOS_PROJETO, MOTIVOS_RECUSA, recebimentosPorCliente, recebimentosGeral, recebimentosCartoes, avisosCliente, creditoCliente, opcoesOrcamento, validaPedidoOrcamento, podeVerPrecoUnitario, normDimensao, dimensaoCliente, usoPrevisto, tarefasVisiveis, tarefaAutoNaoAceite, validaTarefa, validaConclusaoTarefa, validaReagendarTarefa, calendarioMes, feirasVisiveis, tarefaAutoRelatorioFeira, avaliacaoFeira, validaFeira, validaRelatorioFeira };
 if (typeof module !== "undefined" && module.exports) module.exports = _API;
 if (typeof window !== "undefined") window.L = _API;

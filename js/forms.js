@@ -26,9 +26,10 @@ const ORIGEM_CLIENTE = ["", "Anúncios / Publicações em revistas", "Contacto d
 /* ---------- construtor genérico de formulário em folha ---------- */
 function campoHTML(c, val) {
   const v = val[c.n] != null ? val[c.n] : "";
-  const lbl = `<label>${esc(c.l)}</label>`;
+  const rotulo = typeof c.l === "function" ? c.l(val) : c.l;   // rótulo pode depender dos valores
+  const lbl = `<label>${esc(rotulo)}</label>`;
   if (c.type === "checkbox") {
-    return `<div class="fld"><label class="chk"><input type="checkbox" name="${c.n}" ${v ? "checked" : ""}> ${esc(c.l)}</label></div>`;
+    return `<div class="fld"><label class="chk"><input type="checkbox" name="${c.n}" ${v ? "checked" : ""}> ${esc(rotulo)}</label></div>`;
   }
   if (c.type === "select") {
     let options = (c.options || []).slice();
@@ -214,10 +215,23 @@ function formConcluirTarefa(id) {
   const t = (S.atividades || []).find(a => String(a.id) === String(id));
   if (!t) return;
   const campos = [
-    { n: "resultado", l: "Resultado", type: "select", options: [{ v: "Concluída", l: "Concluída" }, { v: "Não foi possível", l: "Não foi possível" }, { v: "A reagendar", l: "A reagendar" }] },
-    { n: "resultadoNotas", l: "Feedback (obrigatório)", type: "textarea", placeholder: "O que aconteceu / o que ficou decidido…" }
+    { n: "resultado", l: "Resultado", type: "select", options: [{ v: "Concluída", l: "Concluída" }, { v: "Não foi possível", l: "Não foi possível" }, { v: "A reagendar", l: "A reagendar (fica por fazer, com nova data)" }] },
+    // "A reagendar" NÃO conclui: pede nova data e mantém a tarefa aberta.
+    { n: "novaData", l: "Nova data", type: "date", se: d => d.resultado === "A reagendar" },
+    { n: "resultadoNotas", l: d => d.resultado === "A reagendar" ? "Motivo do reagendamento (obrigatório)" : "Feedback (obrigatório)", type: "textarea", placeholder: "O que aconteceu / o que ficou decidido…" }
   ];
-  abrirForm("Concluir tarefa", campos, { resultado: "Concluída", resultadoNotas: "" }, async d => {
+  abrirForm("Concluir tarefa", campos, { resultado: "Concluída", resultadoNotas: "", novaData: isoHoje() }, async d => {
+    if (d.resultado === "A reagendar") {
+      const val = L.validaReagendarTarefa(d);
+      if (!val.ok) return { erros: val.erros };
+      // mantém concluida:false; só muda a data e regista o motivo
+      await Store.update("atividades", id, {
+        data: d.novaData, concluida: false, concluidaEm: null, resultado: null,
+        reagendadoEm: new Date().toISOString(), reagendadoNota: d.resultadoNotas.trim()
+      });
+      closeSheet(); toast("Tarefa reagendada para " + dataPT(d.novaData) + ".");
+      return;
+    }
     const val = L.validaConclusaoTarefa(d);
     if (!val.ok) return { erros: val.erros };
     await Store.update("atividades", id, {
