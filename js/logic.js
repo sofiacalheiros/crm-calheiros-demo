@@ -640,6 +640,30 @@ function podeVerPrecoUnitario(sessao) {
   return !!sessao && sessao.perfil === "gestor";
 }
 
-const _API = { normaliza, diasEntre, visiveis, pesquisaClientes, pesquisaCortantes, cortantesPorMedidas, recebimentosEscaloes, artigosProduzidos, listaArtigos, catalogoArtigos, listaStock, agendaTarefas, fichaCliente, dashboardClientes, dashboardVendedores, resumoProjetos, pipelineProjetos, validaMudancaEstado, patchMudancaEstado, motivosRecusa, ESTADOS_PROJETO, MOTIVOS_RECUSA, recebimentosPorCliente, recebimentosGeral, recebimentosCartoes, avisosCliente, creditoCliente, opcoesOrcamento, validaPedidoOrcamento, podeVerPrecoUnitario, tarefasVisiveis, tarefaAutoNaoAceite, validaTarefa, validaConclusaoTarefa, calendarioMes, feirasVisiveis, tarefaAutoRelatorioFeira, avaliacaoFeira, validaFeira, validaRelatorioFeira };
+/* Dimensão da empresa: lista fechada Micro/Pequena/Média/Grande.
+   Normaliza o valor guardado (CDU_Dimensao) para uma das opções; se não
+   corresponder (vazio, nº de colaboradores, etc.), devolve "". */
+function normDimensao(valor) {
+  const v = String(valor || "").trim().toLowerCase();
+  const mapa = { "micro": "Micro", "pequena": "Pequena", "média": "Média", "media": "Média", "grande": "Grande" };
+  return mapa[v] || "";
+}
+
+/* Dimensão a pré-preencher na ficha: usa o campo CDU_Dimensao do ERP;
+   se não existir, deriva pelos limiares UE a partir do nº de empregados
+   (default sugerido — o utilizador pode mudar na lista). */
+function dimensaoCliente(cliente) {
+  if (!cliente) return "";
+  const explicito = normDimensao(cliente.CDU_Dimensao);
+  if (explicito) return explicito;
+  const n = Number(cliente.NumEmpregados);
+  if (!Number.isFinite(n) || n <= 0) return "";
+  if (n < 10) return "Micro";
+  if (n < 50) return "Pequena";
+  if (n < 250) return "Média";
+  return "Grande";
+}
+
+const _API = { normaliza, diasEntre, visiveis, pesquisaClientes, pesquisaCortantes, cortantesPorMedidas, recebimentosEscaloes, artigosProduzidos, listaArtigos, catalogoArtigos, listaStock, agendaTarefas, fichaCliente, dashboardClientes, dashboardVendedores, resumoProjetos, pipelineProjetos, validaMudancaEstado, patchMudancaEstado, motivosRecusa, ESTADOS_PROJETO, MOTIVOS_RECUSA, recebimentosPorCliente, recebimentosGeral, recebimentosCartoes, avisosCliente, creditoCliente, opcoesOrcamento, validaPedidoOrcamento, podeVerPrecoUnitario, normDimensao, dimensaoCliente, tarefasVisiveis, tarefaAutoNaoAceite, validaTarefa, validaConclusaoTarefa, calendarioMes, feirasVisiveis, tarefaAutoRelatorioFeira, avaliacaoFeira, validaFeira, validaRelatorioFeira };
 if (typeof module !== "undefined" && module.exports) module.exports = _API;
 if (typeof window !== "undefined") window.L = _API;

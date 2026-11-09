@@ -9,6 +9,7 @@
 const TIPO_PROJETO = ["Novo", "Existente"];
 const TIPO_ARTIGO = ["Novo", "Existente", "Existente com alterações"];
 const CONDICOES = ["Habituais", "Ex-Works", "DAP"];
+const DIMENSAO_EMPRESA = ["", "Micro", "Pequena", "Média", "Grande"];
 const TIPO_MERCADO = ["", "Nacional", "Exportação"];
 const TIPO_ASA = ["", "Simples", "Dupla"];
 const PROD_CONTACTO = ["", "Direto", "Indireto"];
@@ -401,7 +402,7 @@ function formPedidoOrcamento(preset) {
     d.numCliente = c.Entidade || c.id || "";
     d.nif = c.Contribuinte || ""; d.morada = c.Morada || ""; d.telefone = c.Telefone || "";
     d.localEntrega = c.LocalEntrega || ""; d.email = c.EMail || "";
-    d.dimensao = c.CDU_Dimensao || (c.NumEmpregados ? c.NumEmpregados + " colaboradores" : "");
+    d.dimensao = L.dimensaoCliente(c);
     d.ppwr = c.CDU_PPWR_RequisitosCliente || "";
   };
   // auto-preenchimento da embalagem a partir do código do artigo
@@ -452,7 +453,7 @@ function formPedidoOrcamento(preset) {
     { n: "pessoaContacto", l: "Pessoa de contacto", type: "text", placeholder: "Nome (texto livre)" },
     { n: "contactoTelefone", l: "Telefone do contacto", type: "text" },
     { n: "email", l: "Email", type: "text" },
-    { n: "dimensao", l: "Dimensão da empresa", type: "text" },
+    { n: "dimensao", l: "Dimensão da empresa", type: "select", options: DIMENSAO_EMPRESA },
     { n: "ppwr", l: "Requisitos PPWR", type: "text" },
 
     { sec: "Dados da embalagem" },
