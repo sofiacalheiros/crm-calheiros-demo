@@ -485,18 +485,24 @@ function rowTarefa(t, porAlocar) {
     ${t.Vendedor && ehGestor() ? `<span class="s">${esc(primeiro(t.Vendedor))}</span>` : ""}
   </div>`;
 }
-/* Vista (mês/lista) e mês mostrado no calendário. */
+/* Vista (mês/lista), mês mostrado e filtro por vendedor (só a Gestão usa). */
 let tarefaVista = "mes";
+let tarefaVend = "";   // "" = todos os vendedores
 let calAno = null, calMes = null;
 function calInit() { if (calAno == null) { const h = isoHoje(); calAno = +h.slice(0, 4); calMes = +h.slice(5, 7); } }
 function calNav(delta) { calInit(); let m = calMes + delta, a = calAno; if (m < 1) { m = 12; a--; } if (m > 12) { m = 1; a++; } calMes = m; calAno = a; renderAll(); }
 
 function estadoTarefa(t) { return t.concluida ? "done" : (t.data && t.data < isoHoje() ? "late" : "ok"); }
 
-function calendarioHTML(cal) {
+function calendarioHTML(cal, mostrarVend) {
   const dias = ["Seg", "Ter", "Qua", "Qui", "Sex", "Sáb", "Dom"];
   const cel = c => {
-    const chips = c.tarefas.slice(0, 3).map(t => `<span class="cal-chip ${estadoTarefa(t)}">${esc(t.descricao || "")}</span>`).join("");
+    // Na Gestão (sem filtro), cada tarefa mostra o nome do vendedor, para se
+    // saber de quem é cada uma no calendário.
+    const chips = c.tarefas.slice(0, 3).map(t => {
+      const quem = mostrarVend && t.Vendedor ? `<b>${esc(primeiro(t.Vendedor))}:</b> ` : "";
+      return `<span class="cal-chip ${estadoTarefa(t)}">${quem}${esc(t.descricao || "")}</span>`;
+    }).join("");
     const mais = c.tarefas.length > 3 ? `<span class="cal-mais">+${c.tarefas.length - 3}</span>` : "";
     return `<button class="cal-cell ${c.fora ? "fora" : ""} ${c.hoje ? "hoje" : ""}" data-act="verDia" data-id="${c.iso}">
       <span class="cal-dia">${c.dia}</span>${chips}${mais}</button>`;
@@ -506,27 +512,53 @@ function calendarioHTML(cal) {
     <div class="cal-grid">${cal.semanas.map(sem => sem.map(cel).join("")).join("")}</div>`;
 }
 
-function listaTarefasHTML(ag) {
+function listaTarefasHTML(ag, agruparPorVend) {
+  let aFazerHTML;
+  if (ag.aFazer.length === 0) {
+    aFazerHTML = '<div class="empty">Sem tarefas agendadas.</div>';
+  } else if (agruparPorVend) {
+    // Gestão, sem filtro: agrupa "A fazer" por vendedor, com cabeçalho por pessoa.
+    aFazerHTML = L.agruparTarefasPorVendedor(ag.aFazer).map(g =>
+      `<h3 class="grupo-vend">${esc(g.vendedor)} <span class="muted" style="font-weight:400">(${g.tarefas.length})</span></h3>
+       <div class="list">${g.tarefas.map(t => rowTarefa(t)).join("")}</div>`).join("");
+  } else {
+    aFazerHTML = `<div class="list">${ag.aFazer.map(t => rowTarefa(t)).join("")}</div>`;
+  }
   return `<h2>A fazer</h2>
-    <div class="list">${ag.aFazer.length ? ag.aFazer.map(t => rowTarefa(t)).join("") : '<div class="empty">Sem tarefas agendadas.</div>'}</div>
+    ${aFazerHTML}
     ${ag.concluidas.length ? `<h2>Concluídas</h2><div class="list">${ag.concluidas.slice(0, 20).map(t => rowTarefa(t)).join("")}</div>` : ""}`;
 }
 
 function vTarefas(el) {
-  const ag = L.agendaTarefas(S.atividades || [], isoHoje());
-  const totalAfazer = ag.aFazer.length + ag.porAlocar.length;
   calInit();
-  const corpo = tarefaVista === "mes" ? calendarioHTML(L.calendarioMes(S.atividades || [], calAno, calMes, isoHoje())) : listaTarefasHTML(ag);
+  // A Gestão pode filtrar por vendedor. O vendedor vê sempre só as suas.
+  const souGestor = ehGestor();
+  const filtro = souGestor ? tarefaVend : "";
+  const ativ = filtro ? (S.atividades || []).filter(a => a.Vendedor === filtro) : (S.atividades || []);
+  const ag = L.agendaTarefas(ativ, isoHoje());
+  const totalAfazer = ag.aFazer.length + ag.porAlocar.length;
+  // Agrupa por vendedor na lista só quando é a Gestão e não há filtro escolhido.
+  const agrupar = souGestor && !filtro;
+  const corpo = tarefaVista === "mes"
+    ? calendarioHTML(L.calendarioMes(ativ, calAno, calMes, isoHoje()), agrupar)
+    : listaTarefasHTML(ag, agrupar);
+  // Chips de filtro por vendedor (só a Gestão).
+  const chipsVend = souGestor ? `<div class="filtro-vend">
+      <button class="chip-vend ${!tarefaVend ? "on" : ""}" data-act="tarefaVend" data-v="">Todos</button>
+      ${(S.vendedores || []).slice().sort((a, b) => String(a.nome).localeCompare(String(b.nome))).map(v =>
+        `<button class="chip-vend ${tarefaVend === v.nome ? "on" : ""}" data-act="tarefaVend" data-v="${esc(v.nome)}">${esc(primeiro(v.nome))}</button>`).join("")}
+    </div>` : "";
   el.innerHTML = `
     <button class="voltar" data-tab="ferramentas">‹ Ferramentas</button>
     <h1>Tarefas</h1>
-    <p class="sub">${totalAfazer} a fazer${ag.atrasadas ? ` · ${ag.atrasadas} atrasadas` : ""}${ag.porAlocar.length ? ` · ${ag.porAlocar.length} por alocar` : ""}${ehGestor() ? " (toda a equipa)" : ""}</p>
+    <p class="sub">${totalAfazer} a fazer${ag.atrasadas ? ` · ${ag.atrasadas} atrasadas` : ""}${ag.porAlocar.length ? ` · ${ag.porAlocar.length} por alocar` : ""}${souGestor ? (filtro ? " · " + esc(filtro) : " (toda a equipa)") : ""}</p>
     <div class="tar-top">
       <div class="seg"><button class="seg-b ${tarefaVista === "mes" ? "on" : ""}" data-act="vista" data-v="mes">Mês</button><button class="seg-b ${tarefaVista === "lista" ? "on" : ""}" data-act="vista" data-v="lista">Lista</button></div>
       <button class="btn pri" data-act="novaTarefa">+ Nova tarefa</button>
     </div>
+    ${chipsVend}
     ${ag.porAlocar.length ? `<h2>Banco de tarefas <span class="muted" style="font-weight:400">(pendente de alocar)</span></h2>
-    <div class="list banco-tarefas">${ag.porAlocar.map(t => rowTarefa(t, true)).join("")}</div>` : ""}
+    <div class="list banco-tarefas">${agrupar ? L.agruparTarefasPorVendedor(ag.porAlocar).map(g => `<h3 class="grupo-vend">${esc(g.vendedor)} <span class="muted" style="font-weight:400">(${g.tarefas.length})</span></h3><div class="list">${g.tarefas.map(t => rowTarefa(t, true)).join("")}</div>`).join("") : ag.porAlocar.map(t => rowTarefa(t, true)).join("")}</div>` : ""}
     ${corpo}`;
 }
 
@@ -1054,6 +1086,7 @@ document.addEventListener("click", ev => {
       case "novaTarefaDia": if (typeof formTarefa === "function") formTarefa({ data: id }); break;
       case "alocarData": if (typeof formAlocarData === "function") formAlocarData(id); break;
       case "vista": tarefaVista = (v === "lista" ? "lista" : "mes"); renderAll(); break;
+      case "tarefaVend": tarefaVend = v || ""; renderAll(); break;
       case "calPrev": calNav(-1); break;
       case "calNext": calNav(1); break;
       case "verDia": sheetDia(id); break;
@@ -1077,7 +1110,7 @@ document.addEventListener("click", ev => {
     }
     return;
   }
-  if (t.dataset.tab) { tab = t.dataset.tab; pesquisa = ""; projFiltro = ""; recSoAtraso = true; cortTipo = ""; cortMedidas = { A: "", B: "", C: "" }; cortCruzada = false; closeSheet(); window.scrollTo(0, 0); render(); return; }
+  if (t.dataset.tab) { tab = t.dataset.tab; pesquisa = ""; projFiltro = ""; recSoAtraso = true; cortTipo = ""; cortMedidas = { A: "", B: "", C: "" }; cortCruzada = false; tarefaVend = ""; closeSheet(); window.scrollTo(0, 0); render(); return; }
   if (ent) { sheetCliente(ent); }
 });
 /* Fecha a folha só quando o toque/clique COMEÇA e TERMINA no fundo escuro.

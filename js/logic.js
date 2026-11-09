@@ -247,6 +247,24 @@ function agendaTarefas(atividades, hojeIso) {
   return { porAlocar, aFazer, concluidas, atrasadas };
 }
 
+/* Agrupa tarefas por vendedor (dono), para a Gestão ver de quem é cada uma.
+   Ordena por nome; as sem responsável ficam no fim. Mantém a ordem recebida
+   dentro de cada grupo (já vem ordenada por data). */
+function agruparTarefasPorVendedor(tarefas) {
+  const mapa = new Map();
+  (tarefas || []).forEach(t => {
+    const v = (t.Vendedor && String(t.Vendedor).trim()) || "(sem responsável)";
+    if (!mapa.has(v)) mapa.set(v, []);
+    mapa.get(v).push(t);
+  });
+  const nomes = Array.from(mapa.keys()).sort((a, b) => {
+    if (a === "(sem responsável)") return 1;
+    if (b === "(sem responsável)") return -1;
+    return a.localeCompare(b, "pt");
+  });
+  return nomes.map(v => ({ vendedor: v, tarefas: mapa.get(v) }));
+}
+
 /* Tarefas visíveis para a sessão: o gestor vê todas; o vendedor vê só aquelas
    de que é dono (Vendedor). Usa-se no ecrã de tarefas e no calendário. */
 function tarefasVisiveis(atividades, sessao) {
@@ -690,6 +708,6 @@ function usoPrevisto(contacto, textoAtual) {
   return t;
 }
 
-const _API = { normaliza, diasEntre, visiveis, pesquisaClientes, pesquisaCortantes, cortantesPorMedidas, recebimentosEscaloes, artigosProduzidos, listaArtigos, catalogoArtigos, listaStock, agendaTarefas, fichaCliente, dashboardClientes, dashboardVendedores, resumoProjetos, pipelineProjetos, validaMudancaEstado, patchMudancaEstado, motivosRecusa, ESTADOS_PROJETO, MOTIVOS_RECUSA, recebimentosPorCliente, recebimentosGeral, recebimentosCartoes, avisosCliente, creditoCliente, opcoesOrcamento, validaPedidoOrcamento, podeVerPrecoUnitario, normDimensao, dimensaoCliente, usoPrevisto, tarefasVisiveis, tarefaAutoNaoAceite, validaTarefa, validaConclusaoTarefa, validaReagendarTarefa, calendarioMes, feirasVisiveis, tarefaAutoRelatorioFeira, avaliacaoFeira, validaFeira, validaRelatorioFeira };
+const _API = { normaliza, diasEntre, visiveis, pesquisaClientes, pesquisaCortantes, cortantesPorMedidas, recebimentosEscaloes, artigosProduzidos, listaArtigos, catalogoArtigos, listaStock, agendaTarefas, fichaCliente, dashboardClientes, dashboardVendedores, resumoProjetos, pipelineProjetos, validaMudancaEstado, patchMudancaEstado, motivosRecusa, ESTADOS_PROJETO, MOTIVOS_RECUSA, recebimentosPorCliente, recebimentosGeral, recebimentosCartoes, avisosCliente, creditoCliente, opcoesOrcamento, validaPedidoOrcamento, podeVerPrecoUnitario, normDimensao, dimensaoCliente, usoPrevisto, tarefasVisiveis, tarefaAutoNaoAceite, validaTarefa, validaConclusaoTarefa, validaReagendarTarefa, agruparTarefasPorVendedor, calendarioMes, feirasVisiveis, tarefaAutoRelatorioFeira, avaliacaoFeira, validaFeira, validaRelatorioFeira };
 if (typeof module !== "undefined" && module.exports) module.exports = _API;
 if (typeof window !== "undefined") window.L = _API;
