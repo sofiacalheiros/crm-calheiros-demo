@@ -978,9 +978,34 @@ function sheetArtigo(artigo, ent) {
   });
 }
 
-/* ---------- Folha (bottom-sheet) ---------- */
-function openSheet(fn) { sheetRender = fn; fn(); $("#back").hidden = false; document.documentElement.classList.add("folha-aberta"); }
-function closeSheet() { sheetRender = null; $("#back").hidden = true; $("#sheet").innerHTML = ""; document.documentElement.classList.remove("folha-aberta"); }
+/* ---------- Folha (bottom-sheet) ----------
+   openSheet aceita um segundo argumento `msgSaida`: função que devolve uma
+   mensagem de confirmação quando fechar implica perder dados (formulários
+   preenchidos), ou null/undefined quando é seguro fechar sem perguntar. */
+let msgFolhaSaida = null;
+function openSheet(fn, msgSaida) { sheetRender = fn; msgFolhaSaida = msgSaida || null; fn(); $("#back").hidden = false; document.documentElement.classList.add("folha-aberta"); }
+function closeSheet() { sheetRender = null; msgFolhaSaida = null; $("#back").hidden = true; $("#sheet").innerHTML = ""; document.documentElement.classList.remove("folha-aberta"); }
+/* Pede para fechar a folha: se houver dados por gravar, confirma primeiro
+   (Sim, sair / Não). Usado pelo × e pelo toque no fundo escuro. */
+async function pedeFecharFolha() {
+  const msg = typeof msgFolhaSaida === "function" ? msgFolhaSaida() : null;
+  if (msg && !(await confirmar(msg))) return;
+  closeSheet();
+}
+
+/* ---------- Confirmação (Sim / Não) ---------- */
+function confirmar(msg) {
+  return new Promise(resolve => {
+    const back = $("#confirmBack"), sim = $("#confirmSim"), nao = $("#confirmNao");
+    if (!back || !sim || !nao) { resolve(window.confirm(msg)); return; }
+    $("#confirmMsg").textContent = msg; back.hidden = false;
+    const fim = r => { back.hidden = true; sim.onclick = null; nao.onclick = null; back.onclick = null; resolve(r); };
+    sim.onclick = () => fim(true);
+    nao.onclick = () => fim(false);
+    back.onclick = ev => { if (ev.target.id === "confirmBack") fim(false); };
+    nao.focus();
+  });
+}
 
 /* ---------- Toast ---------- */
 let toastT = null;
@@ -1021,7 +1046,7 @@ document.addEventListener("click", ev => {
     switch (act) {
       case "lgTeste": { const e = $("#lgEmail"); if (e) { e.value = v; const p = $("#lgPass"); if (p) { p.value = "rumo2026"; p.focus(); } } break; }
       case "sessao": sheetSessao(); break;
-      case "fechar": closeSheet(); break;
+      case "fechar": pedeFecharFolha(); break;
       case "sair": terminarSessao(); break;
       case "novo": sheetNovo(); break;
       case "novaVisita": if (typeof formVisita === "function") formVisita({}); break;
@@ -1069,7 +1094,7 @@ document.addEventListener("click", ev => {
 let backBaixoNoFundo = false;
 if ($("#back")) {
   $("#back").addEventListener("pointerdown", ev => { backBaixoNoFundo = (ev.target.id === "back"); });
-  $("#back").addEventListener("click", ev => { if (ev.target.id === "back" && backBaixoNoFundo) closeSheet(); });
+  $("#back").addEventListener("click", ev => { if (ev.target.id === "back" && backBaixoNoFundo) pedeFecharFolha(); });
 }
 
 /* ---------- Arranque ---------- */

@@ -664,6 +664,23 @@ function dimensaoCliente(cliente) {
   return "Grande";
 }
 
-const _API = { normaliza, diasEntre, visiveis, pesquisaClientes, pesquisaCortantes, cortantesPorMedidas, recebimentosEscaloes, artigosProduzidos, listaArtigos, catalogoArtigos, listaStock, agendaTarefas, fichaCliente, dashboardClientes, dashboardVendedores, resumoProjetos, pipelineProjetos, validaMudancaEstado, patchMudancaEstado, motivosRecusa, ESTADOS_PROJETO, MOTIVOS_RECUSA, recebimentosPorCliente, recebimentosGeral, recebimentosCartoes, avisosCliente, creditoCliente, opcoesOrcamento, validaPedidoOrcamento, podeVerPrecoUnitario, normDimensao, dimensaoCliente, tarefasVisiveis, tarefaAutoNaoAceite, validaTarefa, validaConclusaoTarefa, calendarioMes, feirasVisiveis, tarefaAutoRelatorioFeira, avaliacaoFeira, validaFeira, validaRelatorioFeira };
+/* Uso previsto da embalagem (produtos alimentares):
+   contacto Direto → "Embalagem primária para "; Indireto → "Embalagem
+   secundária para ". Ao trocar de contacto, substitui só o prefixo padrão
+   e mantém o que o utilizador escreveu a seguir; texto personalizado
+   (sem prefixo padrão) não é alterado. */
+function usoPrevisto(contacto, textoAtual) {
+  const PRI = "Embalagem primária para ", SEC = "Embalagem secundária para ";
+  const alvo = contacto === "Direto" ? PRI : contacto === "Indireto" ? SEC : "";
+  if (!alvo) return textoAtual || "";
+  const t = String(textoAtual || "");
+  if (!t.trim()) return alvo;
+  const outro = alvo === PRI ? SEC : PRI;
+  if (t.startsWith(alvo)) return t;
+  if (t.startsWith(outro)) return alvo + t.slice(outro.length);
+  return t;
+}
+
+const _API = { normaliza, diasEntre, visiveis, pesquisaClientes, pesquisaCortantes, cortantesPorMedidas, recebimentosEscaloes, artigosProduzidos, listaArtigos, catalogoArtigos, listaStock, agendaTarefas, fichaCliente, dashboardClientes, dashboardVendedores, resumoProjetos, pipelineProjetos, validaMudancaEstado, patchMudancaEstado, motivosRecusa, ESTADOS_PROJETO, MOTIVOS_RECUSA, recebimentosPorCliente, recebimentosGeral, recebimentosCartoes, avisosCliente, creditoCliente, opcoesOrcamento, validaPedidoOrcamento, podeVerPrecoUnitario, normDimensao, dimensaoCliente, usoPrevisto, tarefasVisiveis, tarefaAutoNaoAceite, validaTarefa, validaConclusaoTarefa, calendarioMes, feirasVisiveis, tarefaAutoRelatorioFeira, avaliacaoFeira, validaFeira, validaRelatorioFeira };
 if (typeof module !== "undefined" && module.exports) module.exports = _API;
 if (typeof window !== "undefined") window.L = _API;

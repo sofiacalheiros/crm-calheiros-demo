@@ -64,7 +64,21 @@ function campoHTML(c, val) {
 
 function abrirForm(titulo, campos, valores, onGravar) {
   valores = { ...valores };
+  // Baseline capturado DEPOIS da 1ª renderização (os <select> normalizam o
+  // valor mostrado ao renderizar), para "sujo" refletir só mudanças do utilizador.
+  let inicial = null;
   const visivel = c => !c.se || c.se(valores);
+  // formulário "sujo" = o utilizador alterou algum campo face ao estado inicial.
+  function estaSujo() {
+    if (inicial === null) return false;
+    coletar();
+    return campos.some(c => {
+      if (!c.n) return false;
+      const a = valores[c.n], b = inicial[c.n];
+      if (Array.isArray(a) || Array.isArray(b)) return JSON.stringify(a || []) !== JSON.stringify(b || []);
+      return (a == null ? "" : a) !== (b == null ? "" : b);
+    });
+  }
   function coletar() {
     const frm = $("#frmSheet"); if (!frm) return;
     campos.forEach(c => {
@@ -107,8 +121,11 @@ function abrirForm(titulo, campos, valores, onGravar) {
         const e = $("#frmErro"); e.textContent = err.code === "quota_exceeded" ? "Sem espaço no dispositivo." : "Não foi possível gravar."; e.hidden = false; btn.disabled = false;
       }
     };
+    if (inicial === null) { coletar(); inicial = { ...valores }; }
   }
-  openSheet(desenha);
+  openSheet(desenha, () => estaSujo()
+    ? `Tem a certeza que pretende sair de «${titulo}»? O que preencheu não será guardado.`
+    : null);
 }
 
 const optsClientes = () => [{ v: "", l: "Escolha o cliente" },
@@ -422,10 +439,11 @@ function formPedidoOrcamento(preset) {
     if (c) { d.cliente = c.id; d.novoCliente = ""; d.clienteNome = c.Nome; preencheCliente(d); }
     else { d.cliente = ""; d.novoCliente = nome; d.numCliente = ""; } // cliente novo: restantes campos ficam livres
   };
-  // ponto 9: contacto direto alimentar → "uso previsto" começa por "Embalagem primária para…"
+  // ponto 9: contacto alimentar → "uso previsto" arranca por "Embalagem
+  // primária para…" (Direto) ou "Embalagem secundária para…" (Indireto);
+  // trocar de contacto substitui o prefixo e mantém o resto do texto.
   const preencheUsoPrevisto = d => {
-    if (d.prodAlimentares && d.contactoProdAlimentar === "Direto" && !String(d.prodUsoPrevisto || "").trim())
-      d.prodUsoPrevisto = "Embalagem primária para ";
+    if (d.prodAlimentares) d.prodUsoPrevisto = L.usoPrevisto(d.contactoProdAlimentar, d.prodUsoPrevisto);
   };
 
   const campos = [
