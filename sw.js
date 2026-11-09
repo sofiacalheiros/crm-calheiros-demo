@@ -2,7 +2,7 @@
    e funcionar sem rede. Os dados NÃO passam por aqui. Quando houver API,
    os pedidos à API vão sempre à rede.
    Ao alterar ficheiros, aumente a VERSAO para os telemóveis receberem a nova versão. */
-const VERSAO = "crm-v1-36";
+const VERSAO = "crm-v1-37";
 const FICHEIROS = ["./", "./index.html",
   "./js/config.js", "./js/store.js", "./js/logic.js", "./js/forms.js", "./js/ui.js",
   "./dados-exemplo.js", "./artigos-exemplo.js", "./stock-exemplo.js", "./seguro-credito-exemplo.js", "./utilizadores-exemplo.js",
@@ -17,8 +17,12 @@ self.addEventListener("activate", e => {
 self.addEventListener("fetch", e => {
   const url = new URL(e.request.url);
   if (e.request.method !== "GET" || url.origin !== location.origin) return; // API e fontes externas: rede
+  // Rede primeiro, SEM cache do browser (no-store): garante sempre a versão
+  // mais recente no GitHub Pages (que guarda ficheiros em cache ~10 min).
+  // Se não houver rede, usa a cópia guardada (funciona offline).
   e.respondWith(
-    fetch(e.request).then(r => { const copia = r.clone(); caches.open(VERSAO).then(c => c.put(e.request, copia)); return r; })
+    fetch(e.request, { cache: "no-store" })
+      .then(r => { const copia = r.clone(); caches.open(VERSAO).then(c => c.put(e.request, copia)); return r; })
       .catch(() => caches.match(e.request))
   );
 });

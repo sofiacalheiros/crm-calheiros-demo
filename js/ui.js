@@ -1103,6 +1103,25 @@ if ($("#back")) {
   try { sessao = JSON.parse(localStorage.getItem(CHAVE_SESSAO)); } catch (_) { }
   if (sessao) { meNome = sessao.nome; iniciarDados(); } else { render(); }
   if ("serviceWorker" in navigator && location.protocol !== "file:") {
-    navigator.serviceWorker.register("sw.js").catch(() => { });
+    // Já havia uma versão a controlar esta página? (se sim, uma nova versão
+    // que assuma o controlo deve recarregar para o utilizador ver o novo código)
+    const jaControlado = !!navigator.serviceWorker.controller;
+    // updateViaCache:"none" → o browser vai sempre buscar o sw.js à rede,
+    // por isso deteta novas versões depressa (não fica preso em cache).
+    navigator.serviceWorker.register("sw.js", { updateViaCache: "none" })
+      .then(reg => {
+        reg.update();
+        // verifica atualizações sempre que a app volta a primeiro plano
+        document.addEventListener("visibilitychange", () => { if (!document.hidden) reg.update(); });
+      })
+      .catch(() => { });
+    // Quando uma nova versão assume o controlo, recarrega UMA vez — exceto
+    // na 1ª instalação ou com um formulário aberto (para não perder dados).
+    let recarregou = false;
+    navigator.serviceWorker.addEventListener("controllerchange", () => {
+      if (recarregou || !jaControlado) return;
+      if (document.documentElement.classList.contains("folha-aberta")) return;
+      recarregou = true; location.reload();
+    });
   }
 })();
