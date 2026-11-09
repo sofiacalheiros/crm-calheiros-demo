@@ -353,7 +353,7 @@ function vFerramentas(el) {
       ${atalho("artigos", "Artigos", `${nArt} artigos · ficha técnica e última produção`)}
       ${atalho("cortantes", "Cortantes", `${nCort} cortantes · por tipo de caixa ou medidas`)}
       ${atalho("stock", "Stock", `${nStock} artigos com stock · por armazém e lote`)}
-      ${atalho("tarefas", "Tarefas", `${ag.aFazer.length + ag.porAlocar.length} a fazer${ag.atrasadas ? " · " + ag.atrasadas + " atrasadas" : ""}${ag.porAlocar.length ? " · " + ag.porAlocar.length + " por alocar" : ""}`)}
+      ${atalho("tarefas", "Tarefas e calendário", `${ag.aFazer.length + ag.porAlocar.length} a fazer${ag.atrasadas ? " · " + ag.atrasadas + " atrasadas" : ""}${ag.porAlocar.length ? " · " + ag.porAlocar.length + " por alocar" : ""}`)}
       ${atalho("projetos", "Projetos", `${nProj} · pipeline por estado`)}
       ${atalho("recebimentos", "Recebimentos", `${nReceb} clientes · avisos de atraso`)}
       ${atalho("feiras", "Feiras", `${(S.feiras || []).length} ${ehGestor() ? "· atribuir e avaliar relatórios" : "atribuídas a si"}`)}
@@ -492,7 +492,7 @@ let calAno = null, calMes = null;
 function calInit() { if (calAno == null) { const h = isoHoje(); calAno = +h.slice(0, 4); calMes = +h.slice(5, 7); } }
 function calNav(delta) { calInit(); let m = calMes + delta, a = calAno; if (m < 1) { m = 12; a--; } if (m > 12) { m = 1; a++; } calMes = m; calAno = a; renderAll(); }
 
-function estadoTarefa(t) { return t.concluida ? "done" : (t.data && t.data < isoHoje() ? "late" : "ok"); }
+function estadoTarefa(t) { return t.tipo === "reuniao" ? "reuniao" : (t.concluida ? "done" : (t.data && t.data < isoHoje() ? "late" : "ok")); }
 
 function calendarioHTML(cal, mostrarVend) {
   const dias = ["Seg", "Ter", "Qua", "Qui", "Sex", "Sáb", "Dom"];
@@ -500,6 +500,10 @@ function calendarioHTML(cal, mostrarVend) {
     // Na Gestão (sem filtro), cada tarefa mostra o nome do vendedor, para se
     // saber de quem é cada uma no calendário.
     const chips = c.tarefas.slice(0, 3).map(t => {
+      if (t.tipo === "reuniao") {
+        const lbl = (t.hora ? t.hora + " " : "") + (t.titulo || t.descricao || "Reunião");
+        return `<span class="cal-chip reuniao">${esc(lbl)}</span>`;
+      }
       const quem = mostrarVend && t.Vendedor ? `<b>${esc(primeiro(t.Vendedor))}:</b> ` : "";
       return `<span class="cal-chip ${estadoTarefa(t)}">${quem}${esc(t.descricao || "")}</span>`;
     }).join("");
@@ -512,7 +516,16 @@ function calendarioHTML(cal, mostrarVend) {
     <div class="cal-grid">${cal.semanas.map(sem => sem.map(cel).join("")).join("")}</div>`;
 }
 
-function listaTarefasHTML(ag, agruparPorVend) {
+function rowReuniao(r) {
+  const quem = r.equipa ? "Toda a equipa" : (r.participantes || []).map(primeiro).join(", ");
+  const quando = dataPT(r.data) + (r.hora ? " · " + esc(r.hora) : "");
+  return `<div class="row reuniao-row"><span class="dot-reuniao"></span>
+    <span class="grow"><span class="t">${esc(r.titulo || "Reunião")}</span><span class="s">${quando} · ${esc(quem)}${r.descricao ? " · " + esc(r.descricao) : ""}</span></span></div>`;
+}
+
+function listaTarefasHTML(ag, agruparPorVend, reunioes) {
+  const reunHTML = (reunioes && reunioes.length)
+    ? `<h2>Reuniões</h2><div class="list">${reunioes.map(rowReuniao).join("")}</div>` : "";
   let aFazerHTML;
   if (ag.aFazer.length === 0) {
     aFazerHTML = '<div class="empty">Sem tarefas agendadas.</div>';
@@ -524,7 +537,8 @@ function listaTarefasHTML(ag, agruparPorVend) {
   } else {
     aFazerHTML = `<div class="list">${ag.aFazer.map(t => rowTarefa(t)).join("")}</div>`;
   }
-  return `<h2>A fazer</h2>
+  return `${reunHTML}
+    <h2>A fazer</h2>
     ${aFazerHTML}
     ${ag.concluidas.length ? `<h2>Concluídas</h2><div class="list">${ag.concluidas.slice(0, 20).map(t => rowTarefa(t)).join("")}</div>` : ""}`;
 }
@@ -534,14 +548,20 @@ function vTarefas(el) {
   // A Gestão pode filtrar por vendedor. O vendedor vê sempre só as suas.
   const souGestor = ehGestor();
   const filtro = souGestor ? tarefaVend : "";
-  const ativ = filtro ? (S.atividades || []).filter(a => a.Vendedor === filtro) : (S.atividades || []);
+  // Ao filtrar por vendedor, inclui também as reuniões em que ele participa.
+  const ativ = filtro
+    ? (S.atividades || []).filter(a => a.Vendedor === filtro || (a.tipo === "reuniao" && (a.equipa || (a.participantes || []).includes(filtro))))
+    : (S.atividades || []);
   const ag = L.agendaTarefas(ativ, isoHoje());
   const totalAfazer = ag.aFazer.length + ag.porAlocar.length;
+  // Reuniões futuras (para a vista de lista), ordenadas por data.
+  const reunioes = ativ.filter(a => a.tipo === "reuniao" && a.data >= isoHoje())
+    .sort((a, b) => String(a.data + (a.hora || "")).localeCompare(String(b.data + (b.hora || ""))));
   // Agrupa por vendedor na lista só quando é a Gestão e não há filtro escolhido.
   const agrupar = souGestor && !filtro;
   const corpo = tarefaVista === "mes"
     ? calendarioHTML(L.calendarioMes(ativ, calAno, calMes, isoHoje()), agrupar)
-    : listaTarefasHTML(ag, agrupar);
+    : listaTarefasHTML(ag, agrupar, reunioes);
   // Chips de filtro por vendedor (só a Gestão).
   const chipsVend = souGestor ? `<div class="filtro-vend">
       <button class="chip-vend ${!tarefaVend ? "on" : ""}" data-act="tarefaVend" data-v="">Todos</button>
@@ -550,11 +570,11 @@ function vTarefas(el) {
     </div>` : "";
   el.innerHTML = `
     <button class="voltar" data-tab="ferramentas">‹ Ferramentas</button>
-    <h1>Tarefas</h1>
+    <h1>Tarefas e calendário</h1>
     <p class="sub">${totalAfazer} a fazer${ag.atrasadas ? ` · ${ag.atrasadas} atrasadas` : ""}${ag.porAlocar.length ? ` · ${ag.porAlocar.length} por alocar` : ""}${souGestor ? (filtro ? " · " + esc(filtro) : " (toda a equipa)") : ""}</p>
     <div class="tar-top">
       <div class="seg"><button class="seg-b ${tarefaVista === "mes" ? "on" : ""}" data-act="vista" data-v="mes">Mês</button><button class="seg-b ${tarefaVista === "lista" ? "on" : ""}" data-act="vista" data-v="lista">Lista</button></div>
-      <button class="btn pri" data-act="novaTarefa">+ Nova tarefa</button>
+      <div class="tar-acts"><button class="btn" data-act="novaReuniao">+ Reunião</button><button class="btn pri" data-act="novaTarefa">+ Nova tarefa</button></div>
     </div>
     ${chipsVend}
     ${ag.porAlocar.length ? `<h2>Banco de tarefas <span class="muted" style="font-weight:400">(pendente de alocar)</span></h2>
@@ -565,8 +585,9 @@ function vTarefas(el) {
 /* Folha de um dia do calendário: lista as tarefas desse dia + criar nova nesse dia. */
 function sheetDia(iso) {
   openSheet(() => {
-    const dia = (S.atividades || []).filter(a => a.tipo === "tarefa" && a.data === iso);
+    const dia = (S.atividades || []).filter(a => (a.tipo === "tarefa" || a.tipo === "reuniao") && a.data === iso);
     const linhas = dia.length ? dia.map(t => {
+      if (t.tipo === "reuniao") return rowReuniao(t);
       const st = estadoTarefa(t);
       const fb = t.concluida && t.resultadoNotas ? ` · ${esc(t.resultado || "Concluída")}: ${esc(t.resultadoNotas)}` : "";
       return `<div class="row ${t.concluida ? "done" : ""}">
@@ -575,11 +596,11 @@ function sheetDia(iso) {
         ${!t.concluida ? `<button class="btn mini" data-act="alocarData" data-id="${esc(t.id)}">Reagendar</button>` : ""}
         ${t.Vendedor && ehGestor() ? `<span class="s">${esc(primeiro(t.Vendedor))}</span>` : ""}
       </div>`;
-    }).join("") : '<div class="empty">Sem tarefas neste dia.</div>';
+    }).join("") : '<div class="empty">Sem nada neste dia.</div>';
     $("#sheet").innerHTML = `<div class="grab"></div>
       <div class="sh-h"><h3 style="text-transform:capitalize">${dataCompleta(iso)}</h3><button class="x" data-act="fechar" aria-label="Fechar">×</button></div>
       <div class="list">${linhas}</div>
-      <div class="actions"><button class="btn pri" data-act="novaTarefaDia" data-id="${iso}">+ Nova tarefa neste dia</button></div>`;
+      <div class="actions"><button class="btn" data-act="novaReuniaoDia" data-id="${iso}">+ Reunião</button><button class="btn pri" data-act="novaTarefaDia" data-id="${iso}">+ Nova tarefa</button></div>`;
   });
 }
 async function toggleTarefa(id) {
@@ -1047,6 +1068,7 @@ function sheetNovo() {
         <button class="btn" data-act="novoOrcamento"><b>Pedir orçamento</b><span class="menu-s">Cria um projeto pendente</span></button>
         <button class="btn" data-act="novaVisita"><b>Registar visita</b><span class="menu-s">Visita ou despesa a um cliente</span></button>
         <button class="btn" data-act="novaTarefa"><b>Nova tarefa</b><span class="menu-s">${ehGestor() ? "Para si ou para um vendedor" : "Uma tarefa sua"}</span></button>
+        <button class="btn" data-act="novaReuniao"><b>Marcar reunião</b><span class="menu-s">Equipa toda ou individual · no calendário</span></button>
       </div>`;
   });
 }
@@ -1084,6 +1106,8 @@ document.addEventListener("click", ev => {
       case "toggleTarefa": toggleTarefa(id); break;
       case "novaTarefa": if (typeof formTarefa === "function") formTarefa({}); break;
       case "novaTarefaDia": if (typeof formTarefa === "function") formTarefa({ data: id }); break;
+      case "novaReuniao": if (typeof formReuniao === "function") formReuniao({}); break;
+      case "novaReuniaoDia": if (typeof formReuniao === "function") formReuniao({ data: id }); break;
       case "alocarData": if (typeof formAlocarData === "function") formAlocarData(id); break;
       case "vista": tarefaVista = (v === "lista" ? "lista" : "mes"); renderAll(); break;
       case "tarefaVend": tarefaVend = v || ""; renderAll(); break;

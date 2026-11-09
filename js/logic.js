@@ -37,7 +37,7 @@ function visiveis(RAW, sessao) {
   S.vendas = R("vendas").filter(v => meuCliente(v.Entidade));
   // atividades da carteira + tarefas de que o vendedor é dono (a Gestão pode
   // atribuir-lhe tarefas sem cliente ou de clientes de outra carteira).
-  S.atividades = R("atividades").filter(a => meuCliente(a.Entidade) || (a.tipo === "tarefa" && a.Vendedor === eu));
+  S.atividades = R("atividades").filter(a => meuCliente(a.Entidade) || (a.tipo === "tarefa" && a.Vendedor === eu) || (a.tipo === "reuniao" && (a.equipa || (a.participantes || []).includes(eu))));
   S.pendentes = R("pendentes").filter(p => meuCliente(p.Entidade));
   S.cortantes = R("cortantes");   // cortantes não têm dados do cliente — lista comum
   S.artigos = R("artigos").filter(a => meuCliente(a.CodCliente));
@@ -300,6 +300,16 @@ function validaConclusaoTarefa(d) {
   return { ok: Object.keys(erros).length === 0, erros };
 }
 
+/* Reunião: exige título e data. "Equipa" (todos) dispensa participantes;
+   "individual" exige pelo menos um vendedor escolhido. */
+function validaReuniao(d) {
+  const erros = {};
+  if (!d.titulo || !String(d.titulo).trim()) erros.titulo = "Dê um título à reunião.";
+  if (!d.data) erros.data = "Escolha a data.";
+  if (!d.equipa && (!d.participantes || !d.participantes.length)) erros.participantes = "Escolha quem participa.";
+  return { ok: Object.keys(erros).length === 0, erros };
+}
+
 /* Reagendar (não conclui): exige nova data e o motivo. A tarefa fica aberta
    com a nova data — NUNCA passa a concluída. */
 function validaReagendarTarefa(d) {
@@ -357,7 +367,7 @@ function validaRelatorioFeira(d) {
 const MESES_PT = ["janeiro", "fevereiro", "março", "abril", "maio", "junho", "julho", "agosto", "setembro", "outubro", "novembro", "dezembro"];
 function calendarioMes(atividades, ano, mes, hojeIso) {
   const porDia = {};
-  (atividades || []).filter(a => a.tipo === "tarefa" && a.data).forEach(t => { (porDia[t.data] = porDia[t.data] || []).push(t); });
+  (atividades || []).filter(a => (a.tipo === "tarefa" || a.tipo === "reuniao") && a.data).forEach(t => { (porDia[t.data] = porDia[t.data] || []).push(t); });
   const diaSemana = (new Date(Date.UTC(ano, mes - 1, 1)).getUTCDay() + 6) % 7;   // 0 = segunda
   const cur = new Date(Date.UTC(ano, mes - 1, 1 - diaSemana));
   const semanas = [];
@@ -708,6 +718,6 @@ function usoPrevisto(contacto, textoAtual) {
   return t;
 }
 
-const _API = { normaliza, diasEntre, visiveis, pesquisaClientes, pesquisaCortantes, cortantesPorMedidas, recebimentosEscaloes, artigosProduzidos, listaArtigos, catalogoArtigos, listaStock, agendaTarefas, fichaCliente, dashboardClientes, dashboardVendedores, resumoProjetos, pipelineProjetos, validaMudancaEstado, patchMudancaEstado, motivosRecusa, ESTADOS_PROJETO, MOTIVOS_RECUSA, recebimentosPorCliente, recebimentosGeral, recebimentosCartoes, avisosCliente, creditoCliente, opcoesOrcamento, validaPedidoOrcamento, podeVerPrecoUnitario, normDimensao, dimensaoCliente, usoPrevisto, tarefasVisiveis, tarefaAutoNaoAceite, validaTarefa, validaConclusaoTarefa, validaReagendarTarefa, agruparTarefasPorVendedor, calendarioMes, feirasVisiveis, tarefaAutoRelatorioFeira, avaliacaoFeira, validaFeira, validaRelatorioFeira };
+const _API = { normaliza, diasEntre, visiveis, pesquisaClientes, pesquisaCortantes, cortantesPorMedidas, recebimentosEscaloes, artigosProduzidos, listaArtigos, catalogoArtigos, listaStock, agendaTarefas, fichaCliente, dashboardClientes, dashboardVendedores, resumoProjetos, pipelineProjetos, validaMudancaEstado, patchMudancaEstado, motivosRecusa, ESTADOS_PROJETO, MOTIVOS_RECUSA, recebimentosPorCliente, recebimentosGeral, recebimentosCartoes, avisosCliente, creditoCliente, opcoesOrcamento, validaPedidoOrcamento, podeVerPrecoUnitario, normDimensao, dimensaoCliente, usoPrevisto, tarefasVisiveis, tarefaAutoNaoAceite, validaTarefa, validaConclusaoTarefa, validaReagendarTarefa, validaReuniao, agruparTarefasPorVendedor, calendarioMes, feirasVisiveis, tarefaAutoRelatorioFeira, avaliacaoFeira, validaFeira, validaRelatorioFeira };
 if (typeof module !== "undefined" && module.exports) module.exports = _API;
 if (typeof window !== "undefined") window.L = _API;

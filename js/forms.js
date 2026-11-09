@@ -252,6 +252,33 @@ function formAlocarData(id) {
   });
 }
 
+/* Marcar reunião: aparece no calendário (a amarelo). Pode ser de toda a
+   equipa ou só com vendedores escolhidos. */
+function formReuniao(preset) {
+  preset = preset || {};
+  const campos = [
+    { n: "titulo", l: "Assunto da reunião", type: "text", placeholder: "Ex.: Reunião de equipa mensal" },
+    { n: "data", l: "Data", type: "date" },
+    { n: "hora", l: "Hora (opcional)", type: "time" },
+    { n: "ambito", l: "Quem participa", type: "select", options: [{ v: "equipa", l: "Toda a equipa" }, { v: "individual", l: "Vendedores específicos" }] },
+    { n: "participantes", l: "Vendedores", type: "checklist", options: (S.vendedores || []).map(v => v.nome), se: d => d.ambito === "individual" },
+    { n: "descricao", l: "Notas (opcional)", type: "textarea", placeholder: "Ordem de trabalhos, local ou link…" }
+  ];
+  const valores = { ambito: "equipa", data: preset.data || isoHoje(), hora: "", participantes: [], ...preset };
+  abrirForm("Nova reunião", campos, valores, async d => {
+    const equipa = d.ambito === "equipa";
+    const val = L.validaReuniao({ titulo: d.titulo, data: d.data, equipa, participantes: d.participantes });
+    if (!val.ok) return { erros: val.erros };
+    const participantes = equipa ? (S.vendedores || []).map(v => v.nome) : (d.participantes || []);
+    await Store.add("atividades", {
+      tipo: "reuniao", titulo: d.titulo.trim(), descricao: (d.descricao || "").trim(),
+      data: d.data, hora: d.hora || "", equipa, participantes,
+      criadoPor: meNome || "", criadoEm: new Date().toISOString()
+    });
+    closeSheet(); toast("Reunião marcada.");
+  });
+}
+
 /* ---------- Feiras (OGCAL 361.00) ---------- */
 const OBJETIVOS_FEIRA = ["Pesquisa de Novos Produtos/Tecnologias", "Análise de Concorrência", "Prospeção de Novos Clientes/Parceiros", "Fortalecimento de Relações Existentes", "Pesquisa de Fornecedores de Matéria-Prima", "Entender Tendências de Mercado", "Participar em Conferências/Workshops", "Outros"];
 const TENDENCIAS_FEIRA = ["sustentabilidade", "personalização", "digitalização", "materiais inovadores", "automação"];
