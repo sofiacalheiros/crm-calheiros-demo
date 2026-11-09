@@ -46,13 +46,15 @@ function campoHTML(c, val) {
     return `<div class="fld">${lbl}<input name="${c.n}" list="${listId}" value="${esc(v)}" autocomplete="off" ${c.placeholder ? `placeholder="${esc(c.placeholder)}"` : ""}><datalist id="${listId}">${opts}</datalist></div>`;
   }
   if (c.type === "checklist") {
-    // seleção múltipla: várias caixas; guarda um array de valores escolhidos
+    // seleção múltipla num campo que abre (dropdown): fechado mostra o resumo
+    // do que está escolhido; abre para selecionar. Guarda um array de valores.
     const arr = Array.isArray(v) ? v : [];
     const boxes = (c.options || []).map(o => {
       const ov = typeof o === "string" ? o : o.v, ol = typeof o === "string" ? o : (o.l || o.v);
       return `<label class="chk"><input type="checkbox" name="${c.n}" value="${esc(ov)}" ${arr.includes(ov) ? "checked" : ""}> ${esc(ol)}</label>`;
     }).join("");
-    return `<div class="fld">${lbl}<div class="checklist">${boxes}</div></div>`;
+    const resumo = arr.length ? arr.length + (arr.length === 1 ? " opção: " : " opções: ") + arr.join(", ") : "Selecione as opções…";
+    return `<div class="fld">${lbl}<details class="multi" id="det_${esc(c.n)}"><summary><span class="multi-txt ${arr.length ? "" : "ph"}">${esc(resumo)}</span></summary><div class="checklist">${boxes}</div></details></div>`;
   }
   if (c.type === "textarea") return `<div class="fld">${lbl}<textarea name="${c.n}" placeholder="${esc(c.placeholder || "")}">${esc(v)}</textarea></div>`;
   if (c.type === "file") return `<div class="fld">${lbl}<input type="file" name="${c.n}" multiple><small class="muted">No protótipo guarda-se só o nome dos ficheiros.</small></div>`;
@@ -75,6 +77,7 @@ function abrirForm(titulo, campos, valores, onGravar) {
   }
   function desenha() {
     const sheetEl = $("#sheet"); const scrollAnt = sheetEl ? sheetEl.scrollTop : 0;
+    const abertos = Array.from(document.querySelectorAll("#frmSheet details.multi[open]")).map(d => d.id);
     const html = campos.map(c => c.sec ? `<div class="frm-sec">${esc(c.sec)}</div>` : (visivel(c) ? campoHTML(c, valores) : "")).join("");
     $("#sheet").innerHTML = `<div class="grab"></div>
       <div class="sh-h"><h3>${esc(titulo)}</h3><button class="x" data-act="fechar" aria-label="Fechar">×</button></div>
@@ -82,6 +85,7 @@ function abrirForm(titulo, campos, valores, onGravar) {
         <p class="late" id="frmErro" hidden></p>
         <div class="actions"><button class="btn pri" type="submit">Gravar</button></div>
       </form>`;
+    abertos.forEach(id => { const d = document.getElementById(id); if (d) d.open = true; });
     if (scrollAnt) { const s2 = $("#sheet"); if (s2) s2.scrollTop = scrollAnt; }
     const frm = $("#frmSheet");
     campos.forEach(c => {

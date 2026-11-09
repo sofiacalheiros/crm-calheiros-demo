@@ -284,6 +284,14 @@ form input[type=checkbox]{width:22px;height:22px;padding:0;flex:none;accent-colo
 .checklist{display:flex;flex-direction:column;gap:2px;border:1px solid var(--line);border-radius:12px;padding:6px 12px}
 .checklist label.chk{padding:8px 0;border-bottom:1px solid var(--line)}
 .checklist label.chk:last-child{border-bottom:0}
+details.multi{border:1px solid var(--line);border-radius:12px;background:var(--surface);overflow:hidden}
+details.multi>summary{list-style:none;cursor:pointer;display:flex;align-items:center;gap:8px;padding:11px 12px;font-size:16px;color:var(--ink)}
+details.multi>summary::-webkit-details-marker{display:none}
+details.multi>summary::after{content:"▾";margin-left:auto;color:var(--ink-2);flex:none}
+details.multi[open]>summary::after{content:"▴"}
+.multi-txt{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.multi-txt.ph{color:var(--ink-2)}
+details.multi .checklist{border:0;border-top:1px solid var(--line);border-radius:0;padding:4px 12px}
 .chks{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(150px,100%),1fr));gap:0 12px}
 .chks-1{grid-template-columns:1fr}
 .chks-1 label.chk{font-size:15px;align-items:flex-start}
