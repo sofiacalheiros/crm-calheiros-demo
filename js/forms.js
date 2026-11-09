@@ -140,7 +140,9 @@ function formVisita(preset) {
   const campos = [
     { n: "Entidade", l: "Cliente", type: "select", options: optsClientes() },
     { n: "data", l: "Data", type: "date" },
-    { n: "tipo", l: "Tipo", type: "select", options: [{ v: "visita", l: "Visita" }, { v: "chamada", l: "Chamada" }, { v: "reuniao", l: "Reunião" }] },
+    // "reunião" agendada é uma funcionalidade à parte (no calendário); aqui regista-se
+    // o contacto já feito ao cliente — visita ou chamada (ambos contam como contacto).
+    { n: "tipo", l: "Tipo", type: "select", options: [{ v: "visita", l: "Visita" }, { v: "chamada", l: "Chamada" }] },
     { n: "descricao", l: "Descrição", type: "textarea", placeholder: "O que foi tratado…" }
   ];
   const valores = { data: isoHoje(), tipo: "visita", ...preset };
@@ -148,10 +150,10 @@ function formVisita(preset) {
     if (!d.Entidade) return { erros: { cliente: "Escolha o cliente." } };
     if (!d.descricao || !d.descricao.trim()) return { erros: { descricao: "Descreva a visita." } };
     await Store.add("atividades", {
-      tipo: d.tipo, Entidade: d.Entidade, Nome: cliNome(d.Entidade), Vendedor: meNome,
-      data: d.data, descricao: d.descricao, concluida: true, criadoEm: new Date().toISOString()
+      tipo: d.tipo === "chamada" ? "chamada" : "visita", Entidade: d.Entidade, Nome: cliNome(d.Entidade), Vendedor: meNome,
+      data: d.data, descricao: d.descricao, concluida: true, criadoPor: meNome || "", criadoEm: new Date().toISOString()
     });
-    closeSheet(); toast("Visita registada.");
+    closeSheet(); toast(d.tipo === "chamada" ? "Chamada registada." : "Visita registada.");
   });
 }
 
@@ -249,6 +251,26 @@ function formAlocarData(id) {
     if (!d.data) return { erros: { data: "Escolha uma data." } };
     await Store.update("atividades", id, { data: d.data });
     closeSheet(); toast("Tarefa agendada.");
+  });
+}
+
+/* Reagendar uma tarefa já agendada: pede nova data + motivo (obrigatório) e
+   mantém a tarefa aberta (NUNCA conclui). */
+function formReagendar(id) {
+  const t = (S.atividades || []).find(a => String(a.id) === String(id));
+  if (!t) return;
+  const campos = [
+    { n: "novaData", l: "Nova data", type: "date" },
+    { n: "motivo", l: "Motivo do reagendamento (obrigatório)", type: "textarea", placeholder: "Porque foi reagendada…" }
+  ];
+  abrirForm("Reagendar tarefa", campos, { novaData: t.data || isoHoje(), motivo: "" }, async d => {
+    const val = L.validaReagendarTarefa({ novaData: d.novaData, resultadoNotas: d.motivo });
+    if (!val.ok) return { erros: { novaData: val.erros.novaData, motivo: val.erros.resultadoNotas } };
+    await Store.update("atividades", id, {
+      data: d.novaData, concluida: false, concluidaEm: null,
+      reagendadoEm: new Date().toISOString(), reagendadoNota: d.motivo.trim()
+    });
+    closeSheet(); toast("Tarefa reagendada para " + dataPT(d.novaData) + ".");
   });
 }
 

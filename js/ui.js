@@ -116,7 +116,7 @@ function vLogin(el) {
 
 /* ---------- helpers de clientes ---------- */
 function ultimaVisitaDe(ent) {
-  const vs = (S.atividades || []).filter(a => a.tipo === "visita" && String(a.Entidade) === String(ent)).map(a => a.data).filter(Boolean).sort();
+  const vs = (S.atividades || []).filter(a => (a.tipo === "visita" || a.tipo === "chamada") && String(a.Entidade) === String(ent)).map(a => a.data).filter(Boolean).sort();
   return vs.length ? vs[vs.length - 1] : null;
 }
 function rowCliente(c, ult) {
@@ -593,7 +593,7 @@ function sheetDia(iso) {
       return `<div class="row ${t.concluida ? "done" : ""}">
         <button class="check ${t.concluida ? "on" : ""}" data-act="toggleTarefa" data-id="${esc(t.id)}" aria-label="${t.concluida ? "Reabrir" : "Concluir"}"></button>
         <span class="grow" data-act="verTarefa" data-id="${esc(t.id)}"><span class="t">${esc(t.descricao || "Tarefa")}</span><span class="s ${st === "late" ? "late" : ""}">${esc(t.Entidade ? cliNome(t.Entidade) : "")}${fb}</span></span>
-        ${!t.concluida ? `<button class="btn mini" data-act="alocarData" data-id="${esc(t.id)}">Reagendar</button>` : ""}
+        ${!t.concluida ? `<button class="btn mini" data-act="reagendar" data-id="${esc(t.id)}">Reagendar</button>` : ""}
         ${t.Vendedor && ehGestor() ? `<span class="s">${esc(primeiro(t.Vendedor))}</span>` : ""}
       </div>`;
     }).join("") : '<div class="empty">Sem nada neste dia.</div>';
@@ -622,7 +622,7 @@ function sheetTarefa(id) {
     const infoHTML = info.map(([k, v]) => `<div class="det-linha"><span class="det-k">${esc(k)}</span><span class="det-v">${esc(v)}</span></div>`).join("");
     const acoes = t.concluida
       ? `<button class="btn" data-act="toggleTarefa" data-id="${esc(t.id)}">Reabrir</button>`
-      : `<button class="btn" data-act="alocarData" data-id="${esc(t.id)}">Reagendar</button><button class="btn pri" data-act="toggleTarefa" data-id="${esc(t.id)}">Concluir</button>`;
+      : `<button class="btn" data-act="reagendar" data-id="${esc(t.id)}">Reagendar</button><button class="btn pri" data-act="toggleTarefa" data-id="${esc(t.id)}">Concluir</button>`;
     $("#sheet").innerHTML = `<div class="grab"></div>
       <div class="sh-h"><h3>Tarefa</h3><button class="x" data-act="fechar" aria-label="Fechar">×</button></div>
       <p class="det-desc">${esc(t.descricao || "Tarefa")}</p>
@@ -818,6 +818,41 @@ function painelMotivos() {
     <div class="perdas-grp"><h3 class="perdas-h">Para quem perdemos</h3>${barrasPerda(m.porConcorrente, "nome")}</div>
   </div>`;
 }
+/* Mostra os campos preenchidos de um pedido de orçamento (guardado em projeto.pedido).
+   Só lista o que tem valor, com rótulos legíveis. */
+const PEDIDO_CAMPOS = [
+  ["tipoProjeto", "Tipo de projeto"], ["tipoArtigo", "Tipo de artigo"],
+  ["pedOrcamento", "Pedido de orçamento"], ["pedModelo", "Pedido de modelo"], ["pedPrint", "Pedido de print"], ["pedPDF", "Pedido de PDF"], ["norma", "Norma"],
+  ["quantidade", "Quantidades"], ["formatoCaixa", "Formato da caixa"], ["tipoCaixa", "Tipo de caixa"], ["materia", "Matéria-prima"],
+  ["revestimento", "Revestimento"], ["acabamento", "Acabamento"], ["numCoresInt", "Cores (interior)"], ["numCoresExt", "Cores (exterior)"],
+  ["asaPlastico", "Asa plástica"], ["tipoAsa", "Tipo de asa"], ["corAsa", "Cor da asa"],
+  ["cordao", "Cordão"], ["cordaoTamanho", "Tamanho do cordão"], ["cordaoCor", "Cor do cordão"],
+  ["fita", "Fita"], ["janelaAcetato", "Janela com acetato"], ["aptoCongelacao", "Apto congelação"], ["variante", "Variante"],
+  ["exigPaletes", "Exigência embalamento/paletes"], ["exigOutros", "Outros (paletes)"],
+  ["enchimentoAutomatico", "Enchimento automático"], ["embalagemServico", "Embalagem de serviço"], ["fsc", "FSC"], ["tipoMercado", "Tipo de mercado"],
+  ["prodAlimentares", "Produtos alimentares"], ["contactoProdAlimentar", "Tipo de contacto alimentar"], ["prodTipoContacto", "Contacto com o alimento"],
+  ["prodArmazenamento", "Armazenamento"], ["prodTempCongelacao", "Temp. congelação"], ["prodUsoPrevisto", "Uso previsto"], ["tipoBarreira", "Tipo de barreira"], ["tipoBarreiraOutro", "Qual a barreira"],
+  ["dimensao", "Dimensão da empresa"], ["ppwr", "Requisitos PPWR"], ["condicoes", "Condições de fornecimento"],
+  ["pessoaContacto", "Pessoa de contacto"], ["contactoTelefone", "Telefone do contacto"], ["email", "Email"], ["localEntrega", "Local de entrega"],
+  ["novoOrigem", "O que trouxe o cliente"], ["novoContinuidade", "Compra com continuidade"], ["novoPotencial", "Potencial p/ mais referências"], ["novoObs", "Obs. cliente/projeto novo"],
+  ["obs", "Observações"]
+];
+function detalhePedido(pd) {
+  if (!pd || typeof pd !== "object") return "";
+  const linhas = PEDIDO_CAMPOS.map(([k, lbl]) => {
+    const v = pd[k];
+    let txt = "";
+    if (v === true) txt = "Sim";
+    else if (v === false || v == null || v === "") return "";
+    else if (Array.isArray(v)) { if (!v.length) return ""; txt = v.join(", "); }
+    else txt = String(v);
+    if (!txt.trim()) return "";
+    return `<dt>${esc(lbl)}</dt><dd>${esc(txt)}</dd>`;
+  }).filter(Boolean).join("");
+  const anexos = Array.isArray(pd.anexos) && pd.anexos.length ? `<dt>Anexos</dt><dd>${esc(pd.anexos.join(", "))}</dd>` : "";
+  if (!linhas && !anexos) return "";
+  return `<h2 style="margin-top:14px">Detalhes do pedido de orçamento</h2><dl class="facts">${linhas}${anexos}</dl>`;
+}
 function sheetProjeto(id) {
   openSheet(() => {
     const p = (S.projetos || []).find(x => String(x.id) === String(id) || String(x.Projeto) === String(id));
@@ -844,11 +879,11 @@ function sheetProjeto(id) {
         ${p.DataUltimaActividade ? `<dt>Última atividade</dt><dd>${dataCompleta(p.DataUltimaActividade)} (${haDias(p.DataUltimaActividade)})</dd>` : ""}
         ${p.MotivoAnulacao ? `<dt>Motivo</dt><dd>${esc(p.MotivoAnulacao)}</dd>` : ""}
         ${p.Estado === "Não Aceite" ? `<dt>Perdido para</dt><dd>${esc(p.PerdidoPara || "Sem registo")}</dd>` : ""}
-        ${(p.Estado === "Não Aceite" || p.Estado === "Anulado") ? `<dt>Cliente sem interesse</dt><dd>${esc(p.ClienteSemInteresse || "—")}</dd>` : ""}
         ${p.JustificacaoEstado ? `<dt>Justificação</dt><dd>${esc(p.JustificacaoEstado)}</dd>` : ""}
       </dl>
       ${p["ObservaçoesProjeto"] ? `<h2>Observações</h2><p>${esc(p["ObservaçoesProjeto"])}</p>` : ""}
-      <div class="actions"><button class="btn" data-ent="${esc(p.Cliente)}">Ver cliente</button></div>
+      ${detalhePedido(p.pedido)}
+      ${p.Cliente ? `<div class="actions"><button class="btn" data-ent="${esc(p.Cliente)}">Ver cliente</button></div>` : ""}
       <h2 style="margin-top:14px">Histórico no CRM</h2>
       ${hist.length ? `<ul class="timeline">${hist.map(a => `<li>${esc(a.descricao || TIPOS_ATIV[a.tipo] || a.tipo)}<small>${esc(TIPOS_ATIV[a.tipo] || a.tipo)}, ${dataPT(a.data)}${a.Vendedor ? ", " + esc(primeiro(a.Vendedor)) : ""}</small></li>`).join("")}</ul>` : `<p class="muted">Ainda sem atividades registadas no CRM.</p>`}`;
   });
@@ -871,15 +906,13 @@ function formMudarEstado(id, estadoNovo) {
     { n: "motivoOutro", l: "Qual é o motivo?", type: "text", se: d => d.motivo === "Outro" },
     ...(estadoNovo === "Não Aceite" ? [
       { n: "perdidoPara", l: "Cliente perdido para", type: "select", options: ["", ...concorrentes, NAO_REVELA, NOVO_CONCORRENTE] },
-      { n: "perdidoParaNovo", l: "Nome do concorrente", type: "text", se: d => d.perdidoPara === NOVO_CONCORRENTE },
-      { n: "valor", l: "Valor estimado do projeto (€)", type: "number", inputmode: "numeric" }
+      { n: "perdidoParaNovo", l: "Nome do concorrente", type: "text", se: d => d.perdidoPara === NOVO_CONCORRENTE }
     ] : []),
-    { n: "clienteSemInteresse", l: "O cliente deixou de ter interesse?", type: "select", options: ["Não", "Sim"] },
     { n: "justificacao", l: "Justificação", type: "textarea", placeholder: "O que aconteceu e como soube" }
   ] : [
     { n: "justificacao", l: "Justificação", type: "textarea", placeholder: estadoNovo === "Aceite" ? "Ex.: cliente aprovou o orçamento e a amostra, encomenda nº…" : "Porque é que o projeto volta a estar pendente?" }
   ];
-  const valores = { clienteSemInteresse: "Não", valor: (+p[CAMPO_VALOR] || "") };
+  const valores = {};
   abrirForm(`Marcar como ${estadoNovo}`, campos, valores, async d => {
     const perdido = estadoNovo === "Não Aceite"
       ? (d.perdidoPara === NOVO_CONCORRENTE ? (d.perdidoParaNovo || "").trim() : d.perdidoPara)
@@ -1167,6 +1200,7 @@ document.addEventListener("click", ev => {
       case "novaReuniao": if (typeof formReuniao === "function") formReuniao({}); break;
       case "novaReuniaoDia": if (typeof formReuniao === "function") formReuniao({ data: id }); break;
       case "alocarData": if (typeof formAlocarData === "function") formAlocarData(id); break;
+      case "reagendar": if (typeof formReagendar === "function") formReagendar(id); break;
       case "vista": tarefaVista = (v === "lista" ? "lista" : "mes"); renderAll(); break;
       case "tarefaVend": tarefaVend = v || ""; renderAll(); break;
       case "calPrev": calNav(-1); break;

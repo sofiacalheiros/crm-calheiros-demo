@@ -12,8 +12,9 @@ const FONTE_DADOS = "local";                      // "local" (dados de exemplo) 
 const API_BASE = "https://api.empresa.pt/crm";    // usado só com "rest"
 const CAMPO_VALOR = "ValorEstimado";              // campo do ERP com o valor estimado da venda (€, sem IVA). CONFIRMAR com o IT.
 
-/* Coleções usadas na v1 (nomes alinhados com o ERP / dados-exemplo.js).
-   v2 acrescenta: contactos, concorrentes, cortantes. */
+/* Coleções carregadas pela app (nomes alinhados com o ERP / dados-exemplo.js).
+   Nota: "contactos" existe nos dados de exemplo mas o ecrã de contactos ainda
+   não está construído, por isso não está nesta lista (fica para uma próxima versão). */
 const COLECOES = ["vendedores", "clientes", "projetos", "vendas", "pendentes", "atividades", "producao", "cortantes", "artigos", "stock", "seguroCredito", "concorrentes", "feiras", "relatoriosFeira"];
 
 if (typeof module !== "undefined" && module.exports) {

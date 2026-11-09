@@ -33,7 +33,9 @@ function visiveis(RAW, sessao) {
   const meuCliente = ent => resp.has(String(ent));
   S.vendedores = R("vendedores").filter(v => v.nome === eu);
   S.clientes = R("clientes").filter(c => meuCliente(c.id));
-  S.projetos = R("projetos").filter(p => meuCliente(p.Cliente));
+  // projetos da carteira + projetos que o próprio vendedor criou (ex.: pedido de
+  // orçamento a um prospeto que ainda não é cliente seu).
+  S.projetos = R("projetos").filter(p => meuCliente(p.Cliente) || p.Vendedor === eu);
   S.vendas = R("vendas").filter(v => meuCliente(v.Entidade));
   // atividades da carteira + tarefas de que o vendedor é dono (a Gestão pode
   // atribuir-lhe tarefas sem cliente ou de clientes de outra carteira).
@@ -351,6 +353,7 @@ function avaliacaoFeira(relatorios, feiraId) {
 function validaFeira(d) {
   const erros = {};
   if (!d.nome || !String(d.nome).trim()) erros.nome = "Indique o nome da feira.";
+  if (d.dataInicio && d.dataFim && d.dataFim < d.dataInicio) erros.dataFim = "A data de fim é anterior à de início.";
   return { ok: Object.keys(erros).length === 0, erros };
 }
 
@@ -396,7 +399,8 @@ function fichaCliente(ent, S, hojeIso) {
   const ano = String(hojeIso).slice(0, 4);
   const vendas = (S.vendas || []).filter(v => String(v.Entidade) === String(ent));
   const totalVendas = soma(vendas.filter(v => (v.Data || "").startsWith(ano) && !ehNC(v)), v => v.TotalVenda);
-  const visitas = (S.atividades || []).filter(a => a.tipo === "visita" && String(a.Entidade) === String(ent))
+  // visita OU chamada contam como contacto ao cliente (última visita / "sem contacto há…")
+  const visitas = (S.atividades || []).filter(a => (a.tipo === "visita" || a.tipo === "chamada") && String(a.Entidade) === String(ent))
     .sort((a, b) => String(b.data || "").localeCompare(String(a.data || "")));
   const projetosPendentes = (S.projetos || []).filter(p => String(p.Cliente) === String(ent) && p.Estado === "Pendente");
   return {
@@ -493,9 +497,9 @@ function pipelineProjetos(projetos, campoValor) {
 
 /* ---------- mudança de estado do projeto ----------
    Estados fechados (Não Aceite / Anulado) exigem motivo; Não Aceite exige ainda
-   para quem se perdeu e o valor estimado (para o estudo de motivos). Qualquer
-   mudança exige justificação. Lógica pura (validação + construção do patch);
-   o registo no Store e na lista de concorrentes fica na UI. */
+   para quem se perdeu. Qualquer mudança exige justificação. O valor estimado
+   vem automático do ERP e não é pedido/editado aqui. Lógica pura (validação +
+   construção do patch); o registo no Store e na lista de concorrentes fica na UI. */
 const ESTADOS_PROJETO = ["Pendente", "Aceite", "Não Aceite", "Anulado"];
 const MOTIVOS_RECUSA = ["Preço do cartão elevado", "Optou pela concorrência", "Amostra não aprovada",
   "Resistência à compressão insuficiente", "Prazo de produção longo", "Cliente mudou para embalagem plástica", "Outro"];
@@ -512,25 +516,23 @@ function validaMudancaEstado(estadoNovo, d) {
   }
   if (estadoNovo === "Não Aceite") {
     if (vazio(d.perdidoPara)) erros.perdidoPara = "Indique para quem se perdeu.";
-    if (!(+d.valor > 0)) erros.valor = "Indique o valor estimado do projeto.";
+    // O valor estimado NÃO é pedido: vem automático do ERP (ValorEstimado) e não é editável.
   }
   return { ok: Object.keys(erros).length === 0, erros };
 }
 
 function patchMudancaEstado(projeto, estadoNovo, d, hojeIso, campoValor) {
   d = d || {};
-  const campo = campoValor || "ValorEstimado";
   const fechado = estadoNovo === "Não Aceite" || estadoNovo === "Anulado";
   const motivo = fechado ? (d.motivo === "Outro" ? (d.motivoOutro || "").trim() : d.motivo) : null;
   const patch = {
     Estado: estadoNovo,
     MotivoAnulacao: motivo,
     PerdidoPara: estadoNovo === "Não Aceite" ? (d.perdidoPara || null) : null,
-    ClienteSemInteresse: fechado ? (d.clienteSemInteresse || "Não") : "Não",
     JustificacaoEstado: (d.justificacao || "").trim(),
     DataUltimaActividade: hojeIso
   };
-  if (estadoNovo === "Não Aceite") patch[campo] = +d.valor || 0;
+  // ValorEstimado NÃO é alterado aqui — vem automático do ERP.
   return patch;
 }
 
