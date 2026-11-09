@@ -37,6 +37,9 @@ const telHref = t => "tel:" + String(t).replace(/\s/g, "");
 const ehGestor = () => sessao && sessao.perfil === "gestor";
 const cliNome = ent => (S.clientes || []).find(c => String(c.id) === String(ent))?.Nome || ("Cliente " + ent);
 const cliDe = ent => (S.clientes || []).find(c => String(c.id) === String(ent));
+// Nome do cliente a mostrar num artigo: só se for cliente da carteira (ou gestor);
+// nos artigos de outros clientes fica oculto ("—").
+const artigoCliente = a => a.clienteVisivel === false ? "—" : (a.clienteNome || cliNome(a.CodCliente));
 const ICON_TEL = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 4h4l2 5-2.5 1.5a11 11 0 0 0 5 5L15 13l5 2v4a2 2 0 0 1-2 2A16 16 0 0 1 3 6a2 2 0 0 1 2-2"/></svg>';
 const ICON_MAIL = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 7l9 6 9-6"/></svg>';
 const mailHref = e => "mailto:" + String(e).trim();
@@ -1046,7 +1049,7 @@ function vRecebimentos(el) {
 function rowArtigo(a) {
   const prod = a.dataUltimaProducao ? `últ. OP ${esc(a.ultimaOP)} · ${dataPT(a.dataUltimaProducao)}` : "sem produção";
   return `<button class="row" data-act="verArtigo" data-artigo="${esc(a.artigo)}" data-ent="${esc(a.CodCliente)}">
-    <span class="grow"><span class="t">${esc(a.descricao || a.artigo)}</span><span class="s">${esc(a.artigo)}${a.TipoCaixaDescricao ? " · " + esc(a.TipoCaixaDescricao) : ""} · ${esc(a.clienteNome || cliNome(a.CodCliente))}</span></span>
+    <span class="grow"><span class="t">${esc(a.descricao || a.artigo)}</span><span class="s">${esc(a.artigo)}${a.TipoCaixaDescricao ? " · " + esc(a.TipoCaixaDescricao) : ""} · ${esc(artigoCliente(a))}</span></span>
     <span class="s">${prod}</span>
   </button>`;
 }
@@ -1058,7 +1061,7 @@ function vArtigos(el) {
   el.innerHTML = `
     <button class="voltar" data-tab="ferramentas">‹ Ferramentas</button>
     <h1>Artigos</h1>
-    <p class="sub">${arts.length} artigos${ehGestor() ? " (toda a equipa)" : " (sua carteira)"}</p>
+    <p class="sub">${arts.length} artigos${ehGestor() ? " (toda a equipa)" : " · nome do cliente só nos seus"}</p>
     <input class="search" id="buscaArt" placeholder="Procurar artigo, caixa, matéria-prima…" value="${esc(pesquisa)}" autocomplete="off">
     <div class="list">${lista.length ? lista.map(rowArtigo).join("") : '<div class="empty">Nenhum artigo encontrado.</div>'}</div>`;
   ligarPesquisa("#buscaArt");
@@ -1075,8 +1078,8 @@ function sheetArtigo(artigo, ent) {
       <div class="sh-h"><h3>${esc(a.descricao || a.artigo)}</h3><button class="x" data-act="fechar" aria-label="Fechar">×</button></div>
       <dl class="facts">
         <dt>Artigo</dt><dd>${esc(a.artigo)}</dd>
-        <dt>Cliente</dt><dd>${esc(a.clienteNome || cliNome(a.CodCliente))}</dd>
-        ${a.RefCliente ? `<dt>Ref. cliente</dt><dd>${esc(a.RefCliente)}</dd>` : ""}
+        <dt>Cliente</dt><dd>${esc(artigoCliente(a))}</dd>
+        ${a.RefCliente && a.clienteVisivel !== false ? `<dt>Ref. cliente</dt><dd>${esc(a.RefCliente)}</dd>` : ""}
         ${a.EstadoProjeto ? `<dt>Estado</dt><dd>${esc(a.EstadoProjeto)}</dd>` : ""}
       </dl>
       <p class="spec-t">Caixa</p>
@@ -1107,7 +1110,7 @@ function sheetArtigo(artigo, ent) {
         <dt>Qtd. produzida</dt><dd>${a.qtdProduzida != null ? unid(a.qtdProduzida) : "—"}</dd>
         ${L.podeVerPrecoUnitario(sessao) ? `<dt>Preço/unidade</dt><dd>${a.precoUnitario ? eurU(a.precoUnitario) : "—"}</dd>` : ""}
       </dl>
-      <div class="actions"><button class="btn pri" data-act="orcArtigo" data-ent="${esc(a.CodCliente)}" data-artigo="${esc(a.artigo)}">Pedir orçamento a partir deste artigo</button></div>`;
+      ${a.clienteVisivel === false ? "" : `<div class="actions"><button class="btn pri" data-act="orcArtigo" data-ent="${esc(a.CodCliente)}" data-artigo="${esc(a.artigo)}">Pedir orçamento a partir deste artigo</button></div>`}`;
   });
 }
 

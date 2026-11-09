@@ -42,7 +42,13 @@ function visiveis(RAW, sessao) {
   S.atividades = R("atividades").filter(a => meuCliente(a.Entidade) || (a.tipo === "tarefa" && a.Vendedor === eu) || (a.tipo === "reuniao" && (a.equipa || (a.participantes || []).includes(eu))));
   S.pendentes = R("pendentes").filter(p => meuCliente(p.Entidade));
   S.cortantes = R("cortantes");   // cortantes não têm dados do cliente — lista comum
-  S.artigos = R("artigos").filter(a => meuCliente(a.CodCliente));
+  // Artigos: o vendedor vê TODOS os artigos e as suas características; o NOME do
+  // cliente só aparece se for cliente da sua carteira (nos outros fica oculto).
+  // A API real tem de aplicar a MESMA regra (devolver o artigo sem o nome do
+  // cliente alheio) — ver especificação para o IT.
+  S.artigos = R("artigos").map(a => meuCliente(a.CodCliente)
+    ? Object.assign({}, a, { clienteVisivel: true })
+    : Object.assign({}, a, { Nome: "", RefCliente: "", clienteVisivel: false }));
   S.stock = R("stock").filter(s => meuCliente(s.CDU_CodCliente));
   S.seguroCredito = R("seguroCredito").filter(s => meuCliente(s.Cliente));
   S.concorrentes = R("concorrentes");   // concorrentes são uma lista comum (sem dados do cliente)
