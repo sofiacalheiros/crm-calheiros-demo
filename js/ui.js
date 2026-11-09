@@ -480,7 +480,7 @@ function rowTarefa(t, porAlocar) {
   const fb = t.concluida && t.resultadoNotas ? `<span class="s" style="display:block">${esc(t.resultado || "Concluída")}: ${esc(t.resultadoNotas)}</span>` : "";
   return `<div class="row ${t.concluida ? "done" : ""}">
     <button class="check ${t.concluida ? "on" : ""}" data-act="toggleTarefa" data-id="${esc(t.id)}" aria-label="${t.concluida ? "Reabrir" : "Concluir"}"></button>
-    <span class="grow"><span class="t">${esc(t.descricao || "Tarefa")}</span><span class="s ${atras || porAlocar ? "late" : ""}">${esc(sub)}${atras ? " · atrasada" : ""}</span>${fb}</span>
+    <span class="grow" data-act="verTarefa" data-id="${esc(t.id)}"><span class="t">${esc(t.descricao || "Tarefa")}</span><span class="s ${atras || porAlocar ? "late" : ""}">${esc(sub)}${atras ? " · atrasada" : ""}</span>${fb}</span>
     ${porAlocar ? `<button class="btn mini" data-act="alocarData" data-id="${esc(t.id)}">Alocar data</button>` : ""}
     ${t.Vendedor && ehGestor() ? `<span class="s">${esc(primeiro(t.Vendedor))}</span>` : ""}
   </div>`;
@@ -520,7 +520,7 @@ function rowReuniao(r) {
   const quem = r.equipa ? "Toda a equipa" : (r.participantes || []).map(primeiro).join(", ");
   const quando = dataPT(r.data) + (r.hora ? " · " + esc(r.hora) : "");
   return `<div class="row reuniao-row"><span class="dot-reuniao"></span>
-    <span class="grow"><span class="t">${esc(r.titulo || "Reunião")}</span><span class="s">${quando} · ${esc(quem)}${r.descricao ? " · " + esc(r.descricao) : ""}</span></span></div>`;
+    <span class="grow" data-act="verReuniao" data-id="${esc(r.id)}"><span class="t">${esc(r.titulo || "Reunião")}</span><span class="s">${quando} · ${esc(quem)}${r.descricao ? " · " + esc(r.descricao) : ""}</span></span></div>`;
 }
 
 function listaTarefasHTML(ag, agruparPorVend, reunioes) {
@@ -592,7 +592,7 @@ function sheetDia(iso) {
       const fb = t.concluida && t.resultadoNotas ? ` · ${esc(t.resultado || "Concluída")}: ${esc(t.resultadoNotas)}` : "";
       return `<div class="row ${t.concluida ? "done" : ""}">
         <button class="check ${t.concluida ? "on" : ""}" data-act="toggleTarefa" data-id="${esc(t.id)}" aria-label="${t.concluida ? "Reabrir" : "Concluir"}"></button>
-        <span class="grow"><span class="t">${esc(t.descricao || "Tarefa")}</span><span class="s ${st === "late" ? "late" : ""}">${esc(t.Entidade ? cliNome(t.Entidade) : "")}${fb}</span></span>
+        <span class="grow" data-act="verTarefa" data-id="${esc(t.id)}"><span class="t">${esc(t.descricao || "Tarefa")}</span><span class="s ${st === "late" ? "late" : ""}">${esc(t.Entidade ? cliNome(t.Entidade) : "")}${fb}</span></span>
         ${!t.concluida ? `<button class="btn mini" data-act="alocarData" data-id="${esc(t.id)}">Reagendar</button>` : ""}
         ${t.Vendedor && ehGestor() ? `<span class="s">${esc(primeiro(t.Vendedor))}</span>` : ""}
       </div>`;
@@ -602,6 +602,61 @@ function sheetDia(iso) {
       <div class="list">${linhas}</div>
       <div class="actions"><button class="btn" data-act="novaReuniaoDia" data-id="${iso}">+ Reunião</button><button class="btn pri" data-act="novaTarefaDia" data-id="${iso}">+ Nova tarefa</button></div>`;
   });
+}
+
+/* Detalhe de uma tarefa (texto completo + ações). Útil sobretudo no
+   telemóvel, onde o texto nas listas/calendário aparece cortado. */
+function sheetTarefa(id) {
+  const t = (S.atividades || []).find(a => String(a.id) === String(id) && a.tipo === "tarefa");
+  if (!t) return;
+  openSheet(() => {
+    const cli = t.Entidade ? cliNome(t.Entidade) : "";
+    const estado = t.concluida ? "Concluída" : (t.data ? (t.data < isoHoje() ? "Atrasada" : "Agendada") : "Pendente de alocar");
+    const info = [];
+    if (cli) info.push(["Cliente", cli]);
+    info.push(["Estado", estado]);
+    if (t.data) info.push(["Data", dataPT(t.data)]);
+    if (ehGestor() && t.Vendedor) info.push(["Responsável", t.Vendedor]);
+    if (t.reagendadoNota) info.push(["Reagendada — motivo", t.reagendadoNota]);
+    if (t.concluida && t.resultadoNotas) info.push([t.resultado || "Concluída", t.resultadoNotas]);
+    const infoHTML = info.map(([k, v]) => `<div class="det-linha"><span class="det-k">${esc(k)}</span><span class="det-v">${esc(v)}</span></div>`).join("");
+    const acoes = t.concluida
+      ? `<button class="btn" data-act="toggleTarefa" data-id="${esc(t.id)}">Reabrir</button>`
+      : `<button class="btn" data-act="alocarData" data-id="${esc(t.id)}">Reagendar</button><button class="btn pri" data-act="toggleTarefa" data-id="${esc(t.id)}">Concluir</button>`;
+    $("#sheet").innerHTML = `<div class="grab"></div>
+      <div class="sh-h"><h3>Tarefa</h3><button class="x" data-act="fechar" aria-label="Fechar">×</button></div>
+      <p class="det-desc">${esc(t.descricao || "Tarefa")}</p>
+      <div class="det-info">${infoHTML}</div>
+      <div class="actions">${acoes}</div>`;
+  });
+}
+
+/* Detalhe de uma reunião (texto completo). Permite eliminar (gestor ou quem marcou). */
+function sheetReuniao(id) {
+  const r = (S.atividades || []).find(a => String(a.id) === String(id) && a.tipo === "reuniao");
+  if (!r) return;
+  openSheet(() => {
+    const quem = r.equipa ? "Toda a equipa" : (r.participantes || []).join(", ");
+    const quando = dataPT(r.data) + (r.hora ? " · " + esc(r.hora) : "");
+    const info = [["Quando", quando], ["Participantes", quem]];
+    if (r.criadoPor) info.push(["Marcada por", r.criadoPor]);
+    const infoHTML = info.map(([k, v]) => `<div class="det-linha"><span class="det-k">${esc(k)}</span><span class="det-v">${esc(v)}</span></div>`).join("");
+    const podeEliminar = ehGestor() || r.criadoPor === meNome;
+    $("#sheet").innerHTML = `<div class="grab"></div>
+      <div class="sh-h"><h3>Reunião</h3><button class="x" data-act="fechar" aria-label="Fechar">×</button></div>
+      <p class="det-desc"><span class="dot-reuniao" style="display:inline-block;vertical-align:middle;margin-right:8px"></span>${esc(r.titulo || "Reunião")}</p>
+      ${r.descricao ? `<p class="det-notas">${esc(r.descricao)}</p>` : ""}
+      <div class="det-info">${infoHTML}</div>
+      ${podeEliminar ? `<div class="actions"><button class="btn danger" data-act="eliminarReuniao" data-id="${esc(r.id)}">Eliminar reunião</button></div>` : ""}`;
+  });
+}
+
+async function eliminarReuniao(id) {
+  const r = (S.atividades || []).find(a => String(a.id) === String(id));
+  if (!r || !Store) return;
+  if (!(await confirmar(`Eliminar a reunião «${r.titulo || ""}»? Esta ação não pode ser anulada.`))) return;
+  try { await Store.remove("atividades", id); closeSheet(); toast("Reunião eliminada."); }
+  catch (e) { toast("Não foi possível eliminar."); }
 }
 async function toggleTarefa(id) {
   const t = (S.atividades || []).find(a => String(a.id) === String(id));
@@ -1104,6 +1159,9 @@ document.addEventListener("click", ev => {
       case "verCortante": sheetCortante(id); break;
       case "verStock": sheetStock(id); break;
       case "toggleTarefa": toggleTarefa(id); break;
+      case "verTarefa": sheetTarefa(id); break;
+      case "verReuniao": sheetReuniao(id); break;
+      case "eliminarReuniao": eliminarReuniao(id); break;
       case "novaTarefa": if (typeof formTarefa === "function") formTarefa({}); break;
       case "novaTarefaDia": if (typeof formTarefa === "function") formTarefa({ data: id }); break;
       case "novaReuniao": if (typeof formReuniao === "function") formReuniao({}); break;
