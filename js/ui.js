@@ -11,7 +11,7 @@ let Store = null, Auth = null, sessao = null, meNome = null;
 let tab = "inicio", pesquisa = "", sheetRender = null;
 let projFiltro = "", recSoAtraso = true;   // filtros dos ecrãs Projetos / Recebimentos (recebimentos abre em "Em atraso")
 let cortTipo = "", cortMedidas = { A: "", B: "", C: "" }, cortCruzada = false;   // filtros do ecrã Cortantes (tipo de caixa, medidas ±5 mm, cruzamento de medidas)
-const TAB_PAI = { artigos: "ferramentas", cortantes: "ferramentas", stock: "ferramentas", tarefas: "ferramentas", projetos: "ferramentas", recebimentos: "ferramentas" };  // separador a destacar nos sub-ecrãs
+const TAB_PAI = { artigos: "ferramentas", cortantes: "ferramentas", stock: "ferramentas", tarefas: "ferramentas", projetos: "ferramentas", recebimentos: "ferramentas", feiras: "ferramentas" };  // separador a destacar nos sub-ecrãs
 const COR_ESTADO = { "Pendente": "b-a1", "Aceite": "b-ok", "Não Aceite": "b-a3", "Anulado": "b-a2" };
 const COR_STEPPER = { "Pendente": "var(--f-orcamento)", "Aceite": "var(--f-ganho)", "Não Aceite": "var(--f-perdido)", "Anulado": "var(--ink-2)" };
 const NOVO_CONCORRENTE = "Outro concorrente (novo)";
@@ -75,7 +75,7 @@ function renderAll() {
   const ready = loaded.size === COLECOES.length;
   const el = $("#v-" + tab);
   if (!ready) { el.innerHTML = '<p class="loading">A carregar dados…</p>'; return; }
-  ({ inicio: vInicio, clientes: vClientes, ferramentas: vFerramentas, artigos: vArtigos, cortantes: vCortantes, stock: vStock, tarefas: vTarefas, projetos: vProjetos, recebimentos: vRecebimentos, dashboards: vDashboards })[tab](el);
+  ({ inicio: vInicio, clientes: vClientes, ferramentas: vFerramentas, artigos: vArtigos, cortantes: vCortantes, stock: vStock, tarefas: vTarefas, projetos: vProjetos, recebimentos: vRecebimentos, dashboards: vDashboards, feiras: vFeiras })[tab](el);
   if (sheetRender) sheetRender();
 }
 
@@ -165,11 +165,10 @@ function vInicio(el) {
       <button class="kpi" data-tab="projetos"><b>${pend.length}</b><span>Projetos pendentes</span></button>
       <button class="kpi" data-tab="tarefas"><b>${ag.aFazer.length + ag.porAlocar.length}</b><span>Tarefas a fazer</span></button>
     </div>
-    <h2>Ações rápidas</h2>
-    <div class="menu">
-      <button class="btn" data-act="novoOrcamento"><b>Pedir orçamento</b><span class="menu-s">A partir de um artigo do cliente</span></button>
-      <button class="btn" data-act="novaVisita"><b>Registar visita</b><span class="menu-s">Visita ou despesa a um cliente</span></button>
-    </div>
+    <h2>Tarefas pendentes</h2>
+    <div class="list">${(ag.porAlocar.length || ag.aFazer.length)
+      ? ag.porAlocar.map(t => rowTarefa(t, true)).join("") + ag.aFazer.slice(0, 6).map(t => rowTarefa(t)).join("")
+      : '<div class="empty">Sem tarefas pendentes.</div>'}</div>
     <h2>Pagamentos em atraso</h2>
     <div class="list">${atraso.length ? atraso.map(linhaAtraso).join("") : '<div class="empty">Sem pagamentos em atraso.</div>'}</div>
     <h2>Projetos pendentes <span class="muted" style="font-weight:400">(parados há mais tempo primeiro)</span></h2>
@@ -357,6 +356,7 @@ function vFerramentas(el) {
       ${atalho("tarefas", "Tarefas", `${ag.aFazer.length + ag.porAlocar.length} a fazer${ag.atrasadas ? " · " + ag.atrasadas + " atrasadas" : ""}${ag.porAlocar.length ? " · " + ag.porAlocar.length + " por alocar" : ""}`)}
       ${atalho("projetos", "Projetos", `${nProj} · pipeline por estado`)}
       ${atalho("recebimentos", "Recebimentos", `${nReceb} clientes · avisos de atraso`)}
+      ${atalho("feiras", "Feiras", `${(S.feiras || []).length} ${ehGestor() ? "· atribuir e avaliar relatórios" : "atribuídas a si"}`)}
     </div>`;
 }
 
@@ -565,6 +565,100 @@ async function toggleTarefa(id) {
   if (!t.concluida) { if (typeof formConcluirTarefa === "function") formConcluirTarefa(id); return; }
   try { await Store.update("atividades", id, { concluida: false, concluidaEm: null }); }
   catch (e) { toast("Não foi possível guardar."); }
+}
+
+/* ---------- Feiras ---------- */
+function rowFeira(f) {
+  const av = L.avaliacaoFeira(S.relatoriosFeira || [], f.id);
+  const nV = (f.vendedores || []).length;
+  const periodo = f.dataInicio ? dataPT(f.dataInicio) + (f.dataFim ? "–" + dataPT(f.dataFim) : "") : "";
+  const sub = [f.local, periodo].filter(Boolean).join(" · ");
+  const badge = ehGestor()
+    ? `<span class="s">${av.nRelatorios}/${nV} relat.${av.media != null ? " · ⭐" + av.media : ""}</span>`
+    : "";
+  return `<button class="row" data-act="verFeira" data-id="${esc(f.id)}">
+    <span class="grow"><span class="t">${esc(f.nome)}${f.edicao ? " " + esc(f.edicao) : ""}</span><span class="s">${esc(sub)}</span></span>
+    ${badge}</button>`;
+}
+function vFeiras(el) {
+  const feiras = (S.feiras || []).slice().sort((a, b) => String(b.dataInicio || "").localeCompare(String(a.dataInicio || "")));
+  el.innerHTML = `
+    <button class="voltar" data-tab="ferramentas">‹ Ferramentas</button>
+    <h1>Feiras</h1>
+    <p class="sub">${feiras.length} ${feiras.length === 1 ? "feira" : "feiras"}${ehGestor() ? " (toda a equipa)" : " atribuídas a si"}</p>
+    ${ehGestor() ? `<div class="actions" style="margin:8px 0 14px"><button class="btn pri" data-act="novaFeira">+ Nova feira</button></div>` : ""}
+    <div class="list">${feiras.length ? feiras.map(rowFeira).join("") : '<div class="empty">Sem feiras.</div>'}</div>`;
+}
+function sheetFeira(id) {
+  openSheet(() => {
+    const f = (S.feiras || []).find(x => String(x.id) === String(id));
+    if (!f) { closeSheet(); return; }
+    const reps = (S.relatoriosFeira || []).filter(r => String(r.feiraId) === String(f.id));
+    const av = L.avaliacaoFeira(S.relatoriosFeira || [], f.id);
+    const periodo = f.dataInicio ? dataCompleta(f.dataInicio) + (f.dataFim ? " a " + dataCompleta(f.dataFim) : "") : "—";
+    const meuRel = reps.find(r => r.Vendedor === meNome);
+    const linhasVend = (f.vendedores || []).map(v => {
+      const r = reps.find(x => x.Vendedor === v);
+      return `<div class="row"><span class="grow"><span class="t">${esc(v)}</span><span class="s ${r ? "" : "late"}">${r ? ("Relatório entregue" + (r.classificacao ? " · ⭐" + esc(r.classificacao) : "")) : "Sem relatório"}</span></span>${(ehGestor() && r) ? `<button class="btn mini" data-act="verRelatorio" data-id="${esc(r.id)}">Ver</button>` : ""}</div>`;
+    }).join("");
+    const acoesVend = (!ehGestor() && (f.vendedores || []).includes(meNome))
+      ? `<div class="actions"><button class="btn pri" data-act="preencherRelatorio" data-id="${esc(f.id)}">${meuRel ? "Ver / editar o meu relatório" : "Preencher relatório"}</button></div>` : "";
+    const acoesGestor = ehGestor()
+      ? `<div class="actions"><button class="btn" data-act="editarFeira" data-id="${esc(f.id)}">Editar / atribuir</button><button class="btn pri" data-act="avaliarFeira" data-id="${esc(f.id)}">Avaliação (${av.nRelatorios}/${(f.vendedores || []).length})</button></div>` : "";
+    $("#sheet").innerHTML = `<div class="grab"></div>
+      <div class="sh-h"><h3>${esc(f.nome)}${f.edicao ? " " + esc(f.edicao) : ""}</h3><button class="x" data-act="fechar" aria-label="Fechar">×</button></div>
+      <dl class="facts">
+        <dt>Local</dt><dd>${esc(f.local || "—")}</dd>
+        <dt>Datas</dt><dd>${esc(periodo)}</dd>
+        ${f.notas ? `<dt>Notas</dt><dd>${esc(f.notas)}</dd>` : ""}
+      </dl>
+      <p class="spec-t">Vendedores atribuídos</p>
+      <div class="list">${linhasVend || '<div class="empty">Ninguém atribuído.</div>'}</div>
+      ${acoesVend}${acoesGestor}`;
+  });
+}
+function sheetAvaliacaoFeira(id) {
+  openSheet(() => {
+    const f = (S.feiras || []).find(x => String(x.id) === String(id));
+    if (!f) { closeSheet(); return; }
+    const reps = (S.relatoriosFeira || []).filter(r => String(r.feiraId) === String(f.id));
+    const av = L.avaliacaoFeira(S.relatoriosFeira || [], f.id);
+    const cards = reps.map(r => `<div class="row"><span class="grow"><span class="t">${esc(r.Vendedor)}${r.classificacao ? " · ⭐" + esc(r.classificacao) : ""}</span><span class="s">${esc(r.comentariosFinais || "")}</span></span><button class="btn mini" data-act="verRelatorio" data-id="${esc(r.id)}">Abrir</button></div>`).join("");
+    $("#sheet").innerHTML = `<div class="grab"></div>
+      <div class="sh-h"><h3>Avaliação · ${esc(f.nome)}</h3><button class="x" data-act="fechar" aria-label="Fechar">×</button></div>
+      <div class="kpis" style="margin-bottom:12px">
+        <div class="kpi"><b>${av.nRelatorios}/${(f.vendedores || []).length}</b><span>Relatórios</span></div>
+        <div class="kpi"><b>${av.media != null ? "⭐ " + av.media : "—"}</b><span>Classificação média</span></div>
+      </div>
+      <div class="list">${cards || '<div class="empty">Ainda sem relatórios.</div>'}</div>`;
+  });
+}
+function sheetRelatorio(id) {
+  openSheet(() => {
+    const r = (S.relatoriosFeira || []).find(x => String(x.id) === String(id));
+    if (!r) { closeSheet(); return; }
+    const arr = v => Array.isArray(v) ? v.filter(Boolean).join(", ") : (v || "");
+    const linha = (dt, v) => v && String(v).trim() ? `<dt>${esc(dt)}</dt><dd>${esc(String(v))}</dd>` : "";
+    const concs = [1, 2, 3].map(i => r["conc" + i + "Nome"] ? `${r["conc" + i + "Nome"]}${r["conc" + i + "Pais"] ? " (" + r["conc" + i + "Pais"] + ")" : ""}` : "").filter(Boolean);
+    const nContactos = [1, 2, 3, 4, 5].filter(i => r["cont" + i + "Empresa"] || r["cont" + i + "Nome"]).length;
+    $("#sheet").innerHTML = `<div class="grab"></div>
+      <div class="sh-h"><h3>Relatório · ${esc(r.feiraNome || "")}</h3><button class="x" data-act="fechar" aria-label="Fechar">×</button></div>
+      <dl class="facts">
+        ${linha("Comercial", r.comercial || r.Vendedor)}
+        ${linha("Data do relatório", r.dataRelatorio ? dataPT(r.dataRelatorio) : "")}
+        ${linha("Classificação", r.classificacao ? ("⭐ " + r.classificacao + "/5") : "")}
+        ${linha("Objetivos", arr(r.objetivos) + (r.objetivosOutros ? ", " + r.objetivosOutros : ""))}
+        ${linha("Setores em destaque", r.setoresDestaque)}
+        ${linha("Tendências", arr(r.tendencias) + (r.tendenciasOutros ? ", " + r.tendenciasOutros : ""))}
+        ${linha("Concorrentes", concs.join(" · "))}
+        ${linha("Contactos registados", nContactos ? String(nContactos) : "")}
+        ${linha("Oportunidades comerciais", r.oportComerciais)}
+        ${linha("Aprendizagens", r.aprendizagens)}
+        ${linha("Custo-eficaz", r.custoEficaz)}
+        ${linha("Comentários finais", r.comentariosFinais)}
+      </dl>
+      ${r.Vendedor === meNome ? `<div class="actions"><button class="btn pri" data-act="preencherRelatorio" data-id="${esc(r.feiraId)}">Editar o meu relatório</button></div>` : ""}`;
+  });
 }
 
 /* ---------- Projetos (pipeline) ---------- */
@@ -946,6 +1040,12 @@ document.addEventListener("click", ev => {
       case "calPrev": calNav(-1); break;
       case "calNext": calNav(1); break;
       case "verDia": sheetDia(id); break;
+      case "verFeira": sheetFeira(id); break;
+      case "novaFeira": if (typeof formFeira === "function") formFeira(); break;
+      case "editarFeira": if (typeof formFeira === "function") formFeira(id); break;
+      case "preencherRelatorio": if (typeof formRelatorioFeira === "function") formRelatorioFeira(id); break;
+      case "avaliarFeira": sheetAvaliacaoFeira(id); break;
+      case "verRelatorio": sheetRelatorio(id); break;
       case "verProjeto": sheetProjeto(id); break;
       case "estado": formMudarEstado(id, v); break;
       case "cortCruzada": cortCruzada = (v === "true"); renderAll(); break;

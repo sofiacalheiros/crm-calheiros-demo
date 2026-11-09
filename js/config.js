@@ -14,7 +14,7 @@ const CAMPO_VALOR = "ValorEstimado";              // campo do ERP com o valor es
 
 /* Coleções usadas na v1 (nomes alinhados com o ERP / dados-exemplo.js).
    v2 acrescenta: contactos, concorrentes, cortantes. */
-const COLECOES = ["vendedores", "clientes", "projetos", "vendas", "pendentes", "atividades", "producao", "cortantes", "artigos", "stock", "seguroCredito", "concorrentes"];
+const COLECOES = ["vendedores", "clientes", "projetos", "vendas", "pendentes", "atividades", "producao", "cortantes", "artigos", "stock", "seguroCredito", "concorrentes", "feiras", "relatoriosFeira"];
 
 if (typeof module !== "undefined" && module.exports) {
   module.exports = { FONTE_DADOS, API_BASE, CAMPO_VALOR, COLECOES };

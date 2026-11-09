@@ -74,6 +74,7 @@ function abrirForm(titulo, campos, valores, onGravar) {
     });
   }
   function desenha() {
+    const sheetEl = $("#sheet"); const scrollAnt = sheetEl ? sheetEl.scrollTop : 0;
     const html = campos.map(c => c.sec ? `<div class="frm-sec">${esc(c.sec)}</div>` : (visivel(c) ? campoHTML(c, valores) : "")).join("");
     $("#sheet").innerHTML = `<div class="grab"></div>
       <div class="sh-h"><h3>${esc(titulo)}</h3><button class="x" data-act="fechar" aria-label="Fechar">×</button></div>
@@ -81,6 +82,7 @@ function abrirForm(titulo, campos, valores, onGravar) {
         <p class="late" id="frmErro" hidden></p>
         <div class="actions"><button class="btn pri" type="submit">Gravar</button></div>
       </form>`;
+    if (scrollAnt) { const s2 = $("#sheet"); if (s2) s2.scrollTop = scrollAnt; }
     const frm = $("#frmSheet");
     campos.forEach(c => {
       if (!c.n) return;
@@ -211,6 +213,167 @@ function formAlocarData(id) {
     if (!d.data) return { erros: { data: "Escolha uma data." } };
     await Store.update("atividades", id, { data: d.data });
     closeSheet(); toast("Tarefa agendada.");
+  });
+}
+
+/* ---------- Feiras (OGCAL 361.00) ---------- */
+const OBJETIVOS_FEIRA = ["Pesquisa de Novos Produtos/Tecnologias", "Análise de Concorrência", "Prospeção de Novos Clientes/Parceiros", "Fortalecimento de Relações Existentes", "Pesquisa de Fornecedores de Matéria-Prima", "Entender Tendências de Mercado", "Participar em Conferências/Workshops", "Outros"];
+const TENDENCIAS_FEIRA = ["sustentabilidade", "personalização", "digitalização", "materiais inovadores", "automação"];
+const CONC_FORTES = ["design", "inovação", "qualidade", "marketing"];
+const CONTACTO_TIPOS = ["", "Cliente Potencial", "Cliente Existente", "Parceiro", "Fornecedor", "Outro"];
+const CONTACTO_PASSOS = ["Agendar reunião", "Pedir cotação", "Enviar originais", "Enviar amostra", "Outro"];
+const DESAFIOS_FEIRA = ["Instabilidade económica", "Aumento da concorrência", "Novas regulamentações", "Novas tecnologias da concorrência", "Preços agressivos"];
+const ANEXOS_FEIRA = ["Cartões de visita digitalizados", "Brochuras de concorrentes/produtos", "Fotos/vídeos relevantes", "Notas manuscritas"];
+const NIVEL_3 = ["", "Baixa", "Média", "Alta"];
+
+/* Nova feira / editar (só Gestão). Atribui vendedores; cada novo vendedor
+   atribuído recebe uma tarefa automática para preencher o relatório. */
+function formFeira(id) {
+  const f = id ? (S.feiras || []).find(x => String(x.id) === String(id)) : null;
+  const campos = [
+    { n: "nome", l: "Nome da feira", type: "text", placeholder: "Ex.: Empack Madrid" },
+    { n: "edicao", l: "Edição / ano", type: "text", placeholder: "Ex.: 2026" },
+    { n: "local", l: "Local (cidade, país)", type: "text" },
+    { n: "dataInicio", l: "Data de início", type: "date" },
+    { n: "dataFim", l: "Data de fim", type: "date" },
+    { n: "vendedores", l: "Vendedores atribuídos", type: "checklist", options: (S.vendedores || []).map(v => v.nome) },
+    { n: "notas", l: "Notas (opcional)", type: "textarea" }
+  ];
+  const valores = f ? { ...f } : { vendedores: [] };
+  abrirForm(id ? "Editar feira" : "Nova feira", campos, valores, async d => {
+    const val = L.validaFeira(d);
+    if (!val.ok) return { erros: val.erros };
+    const antes = f ? (f.vendedores || []) : [];
+    const base = {
+      nome: d.nome.trim(), edicao: (d.edicao || "").trim(), local: (d.local || "").trim(),
+      dataInicio: d.dataInicio || null, dataFim: d.dataFim || null,
+      vendedores: d.vendedores || [], notas: (d.notas || "").trim()
+    };
+    let feiraId = id;
+    if (id) await Store.update("feiras", id, base);
+    else { base.criadoPor = meNome || ""; base.criadoEm = new Date().toISOString(); const novo = await Store.add("feiras", base); feiraId = novo && novo.id; }
+    // tarefa automática para cada vendedor recém-atribuído
+    for (const v of (d.vendedores || []).filter(x => !antes.includes(x))) {
+      if (feiraId) await Store.add("atividades", L.tarefaAutoRelatorioFeira({ id: feiraId, nome: base.nome }, v));
+    }
+    closeSheet(); toast(id ? "Feira atualizada." : "Feira criada.");
+  });
+}
+
+/* Relatório de visita a feira (fiel ao OGCAL 361.00) — preenchido pelo vendedor. */
+function formRelatorioFeira(feiraId) {
+  const f = (S.feiras || []).find(x => String(x.id) === String(feiraId));
+  if (!f) return;
+  const existente = (S.relatoriosFeira || []).find(r => String(r.feiraId) === String(feiraId) && r.Vendedor === meNome);
+  const campos = [];
+  const add = (...cs) => cs.forEach(c => campos.push(c));
+  // 1
+  campos.push({ sec: "1. Informações gerais da feira" });
+  add(
+    { n: "dataRelatorio", l: "Data do relatório", type: "date" },
+    { n: "feiraNome", l: "Nome da feira", type: "text", readonly: true },
+    { n: "edicao", l: "Edição / ano", type: "text" },
+    { n: "local", l: "Local (cidade, país)", type: "text" },
+    { n: "datasVisita", l: "Data(s) da visita do comercial", type: "text" },
+    { n: "comercial", l: "Comercial responsável", type: "text", readonly: true }
+  );
+  // 2
+  campos.push({ sec: "2. Objetivos da visita" });
+  add(
+    { n: "objetivos", l: "Objetivos (selecione os que se aplicam)", type: "checklist", options: OBJETIVOS_FEIRA },
+    { n: "objetivosOutros", l: "Outros objetivos — quais?", type: "text", se: d => Array.isArray(d.objetivos) && d.objetivos.includes("Outros") }
+  );
+  // 3
+  campos.push({ sec: "3. Observações e análise do mercado" });
+  add(
+    { n: "setoresDestaque", l: "Setores/segmentos em destaque", type: "textarea" },
+    { n: "tendencias", l: "Principais tendências observadas", type: "checklist", options: TENDENCIAS_FEIRA },
+    { n: "tendenciasOutros", l: "Outras tendências", type: "text" },
+    { n: "novidades", l: "Novidades de produtos/serviços", type: "textarea" },
+    { n: "precosCondicoes", l: "Preços/condições de mercado (observações)", type: "textarea" },
+    { n: "numExpositores", l: "Número de expositores", type: "text", inputmode: "numeric" },
+    { n: "afluencia", l: "Afluência de visitantes", type: "select", options: NIVEL_3 },
+    { n: "qualidadePublico", l: "Qualidade do público", type: "select", options: NIVEL_3 }
+  );
+  // 4 — concorrência (3)
+  campos.push({ sec: "4. Análise de concorrência (mínimo 3)" });
+  for (let i = 1; i <= 3; i++) {
+    add(
+      { n: "conc" + i + "Nome", l: "Concorrente " + i + " — nome da empresa", type: "text" },
+      { n: "conc" + i + "Pais", l: "País de origem", type: "text" },
+      { n: "conc" + i + "Produtos", l: "Produtos/serviços em destaque", type: "textarea" },
+      { n: "conc" + i + "Fortes", l: "Pontos fortes observados", type: "checklist", options: CONC_FORTES },
+      { n: "conc" + i + "Fracos", l: "Pontos fracos observados", type: "textarea" },
+      { n: "conc" + i + "Estrategia", l: "Estratégia de vendas/marketing", type: "textarea" }
+    );
+  }
+  add({ n: "concAnaliseGeral", l: "Análise geral da concorrência (o que a Calheiros pode aprender/adaptar?)", type: "textarea" });
+  // 5 — contactos (5)
+  campos.push({ sec: "5. Contactos estabelecidos (mínimo 5)" });
+  for (let i = 1; i <= 5; i++) {
+    add(
+      { n: "cont" + i + "Empresa", l: "Contacto " + i + " — empresa", type: "text" },
+      { n: "cont" + i + "Nome", l: "Nome do contacto", type: "text" },
+      { n: "cont" + i + "Cargo", l: "Cargo/função", type: "text" },
+      { n: "cont" + i + "Pais", l: "País", type: "text" },
+      { n: "cont" + i + "Tipo", l: "Tipo de contacto", type: "select", options: CONTACTO_TIPOS },
+      { n: "cont" + i + "Resumo", l: "Resumo da conversa/interesse", type: "textarea" },
+      { n: "cont" + i + "Passos", l: "Próximos passos", type: "checklist", options: CONTACTO_PASSOS },
+      { n: "cont" + i + "Resp", l: "Responsável pelo seguimento (interno)", type: "text" }
+    );
+  }
+  // 6
+  campos.push({ sec: "6. Oportunidades identificadas" });
+  add(
+    { n: "oportComerciais", l: "Oportunidades comerciais", type: "textarea" },
+    { n: "oportParceria", l: "Oportunidades de parceria/colaboração", type: "textarea" },
+    { n: "oportProduto", l: "Oportunidades de desenvolvimento de produto", type: "textarea" },
+    { n: "oportMelhoria", l: "Oportunidades de melhoria interna", type: "textarea" }
+  );
+  // 7
+  campos.push({ sec: "7. Desafios e ameaças observados" });
+  add(
+    { n: "desafios", l: "Desafios/ameaças", type: "checklist", options: DESAFIOS_FEIRA },
+    { n: "desafiosOutros", l: "Outros desafios/ameaças", type: "text" }
+  );
+  // 8
+  campos.push({ sec: "8. Aprendizagens e recomendações" });
+  add(
+    { n: "aprendizagens", l: "Principais aprendizagens da feira", type: "textarea" },
+    { n: "participacaoFutura", l: "Participação em futuras edições", type: "checklist", options: ["Exposição", "Visita"] }
+  );
+  // 9
+  campos.push({ sec: "9. Custos e eficiência (opcional)" });
+  add(
+    { n: "custoEficaz", l: "Considera a visita custo-eficaz?", type: "select", options: ["", "Sim", "Não"] },
+    { n: "custoPorque", l: "Porquê?", type: "textarea" }
+  );
+  // 10
+  campos.push({ sec: "10. Avaliação global da visita" });
+  add(
+    { n: "classificacao", l: "Classificação (1 a 5 estrelas) — obrigatório", type: "select", options: ["", "1", "2", "3", "4", "5"] },
+    { n: "comentariosFinais", l: "Comentários finais", type: "textarea" },
+    { n: "anexos", l: "Anexos", type: "checklist", options: ANEXOS_FEIRA }
+  );
+
+  const valores = existente ? { ...existente } : {
+    feiraNome: f.nome, edicao: f.edicao || "", local: f.local || "",
+    datasVisita: (f.dataInicio ? dataPT(f.dataInicio) : "") + (f.dataFim ? "–" + dataPT(f.dataFim) : ""),
+    comercial: meNome || "", dataRelatorio: isoHoje(),
+    objetivos: [], tendencias: [], desafios: [], participacaoFutura: [], anexos: [],
+    conc1Fortes: [], conc2Fortes: [], conc3Fortes: [],
+    cont1Passos: [], cont2Passos: [], cont3Passos: [], cont4Passos: [], cont5Passos: []
+  };
+  abrirForm("Relatório — " + f.nome, campos, valores, async d => {
+    const val = L.validaRelatorioFeira(d);
+    if (!val.ok) return { erros: val.erros };
+    const reg = { ...d, feiraId: f.id, Vendedor: meNome, feiraNome: f.nome, classificacao: +d.classificacao || "", concluido: true };
+    if (existente) await Store.update("relatoriosFeira", existente.id, reg);
+    else { reg.criadoEm = new Date().toISOString(); await Store.add("relatoriosFeira", reg); }
+    // fecha a tarefa automática "Preencher relatório" desta feira, se existir
+    const tar = (S.atividades || []).find(a => a.tipo === "tarefa" && a.subtipo === "relatorioFeira" && String(a.feiraId) === String(f.id) && a.Vendedor === meNome && !a.concluida);
+    if (tar) await Store.update("atividades", tar.id, { concluida: true, concluidaEm: isoHoje(), resultado: "Concluída", resultadoNotas: "Relatório submetido." });
+    closeSheet(); toast("Relatório guardado.");
   });
 }
 

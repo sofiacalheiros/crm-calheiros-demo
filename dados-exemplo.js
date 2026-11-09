@@ -1788,5 +1788,13 @@ window.DADOS_EXEMPLO = {
   {"OP": 61733, "Inicio": "2026-09-24T03:34", "Fim": "2026-09-24T07:44", "CentroTrabalho": "110.01", "DescCentro": "Embalagem", "TipoMovimento": "R", "DescricaoArtigo": "CX REFEIÇÕES 4 UNIDADES TEMPEROS", "NomeCliente": "TEMPEROS DO MUNDO LDA", "CodCortante": "02340", "ExemplaresCortante": 12, "QtdProduzida": 8000, "QtdPrevista": 8000, "id": "M942"},
   {"OP": 61735, "Inicio": "2026-10-02T00:34", "Fim": "2026-10-02T04:48", "CentroTrabalho": "100.25", "DescCentro": "Vega 750", "TipoMovimento": "R", "DescricaoArtigo": "CX CALÇADO SENHORA CALÇADOS", "NomeCliente": "CALÇADOS VALE DO AVE LDA", "CodCortante": "01454", "ExemplaresCortante": 8, "QtdProduzida": 14400, "QtdPrevista": 14400, "id": "M943"},
   {"OP": 61735, "Inicio": "2026-10-02T00:32", "Fim": "2026-10-02T03:10", "CentroTrabalho": "110.01", "DescCentro": "Embalagem", "TipoMovimento": "R", "DescricaoArtigo": "CX CALÇADO SENHORA CALÇADOS", "NomeCliente": "CALÇADOS VALE DO AVE LDA", "CodCortante": "01454", "ExemplaresCortante": 8, "QtdProduzida": 14400, "QtdPrevista": 14400, "id": "M944"}
+ ],
+ "feiras": [
+  {"id": "FE1", "nome": "Empack Madrid", "edicao": "2026", "local": "Madrid, Espanha", "dataInicio": "2026-11-25", "dataFim": "2026-11-27", "vendedores": ["Ana Costa", "Pedro Sousa"], "criadoPor": "Geral Gestão", "criadoEm": "2026-10-20T09:00:00Z", "notas": "Foco em embalagem sustentável e automação."},
+  {"id": "FE2", "nome": "Feira Nacional da Embalagem", "edicao": "2026", "local": "Porto, Portugal", "dataInicio": "2026-10-14", "dataFim": "2026-10-16", "vendedores": ["João Martins"], "criadoPor": "Geral Gestão", "criadoEm": "2026-09-15T09:00:00Z", "notas": ""},
+  {"id": "FE3", "nome": "Hispack", "edicao": "2027", "local": "Barcelona, Espanha", "dataInicio": "2027-04-21", "dataFim": "2027-04-24", "vendedores": ["Rita Almeida"], "criadoPor": "Geral Gestão", "criadoEm": "2026-11-02T09:00:00Z", "notas": "Confirmar stand e deslocação."}
+ ],
+ "relatoriosFeira": [
+  {"id": "RF1", "feiraId": "FE2", "Vendedor": "João Martins", "dataRelatorio": "2026-10-19", "comercial": "João Martins", "feiraNome": "Feira Nacional da Embalagem", "objetivos": ["Prospeção de Novos Clientes/Parceiros", "Entender Tendências de Mercado"], "setoresDestaque": "Alimentar e e-commerce", "tendencias": ["sustentabilidade", "materiais inovadores"], "conc1Nome": "Cartonagem do Norte Lda", "conc1Pais": "Portugal", "classificacao": 5, "custoEficaz": "Sim", "comentariosFinais": "Visita muito proveitosa, 6 contactos relevantes e 2 oportunidades claras.", "concluido": true, "criadoEm": "2026-10-19T18:00:00Z"}
  ]
 };

@@ -21,7 +21,7 @@ const ehNC = v => String(v.TipoDoc || "").startsWith("NC");
    Gestor: tudo. */
 function visiveis(RAW, sessao) {
   const R = c => (RAW && RAW[c]) || [];
-  const cols = ["vendedores", "clientes", "projetos", "vendas", "pendentes", "atividades", "producao", "cortantes", "artigos", "stock", "seguroCredito", "concorrentes"];
+  const cols = ["vendedores", "clientes", "projetos", "vendas", "pendentes", "atividades", "producao", "cortantes", "artigos", "stock", "seguroCredito", "concorrentes", "feiras", "relatoriosFeira"];
   const S = {};
   if (!sessao) { cols.forEach(c => S[c] = []); return S; }
   if (sessao.perfil === "gestor") { cols.forEach(c => S[c] = R(c).slice()); return S; }
@@ -46,6 +46,9 @@ function visiveis(RAW, sessao) {
   S.concorrentes = R("concorrentes");   // concorrentes são uma lista comum (sem dados do cliente)
   const ops = new Set(S.vendas.map(v => String(v.Lote)));
   S.producao = R("producao").filter(m => ops.has(String(m.OP)));
+  // Feiras atribuídas ao vendedor; relatórios de que é autor.
+  S.feiras = R("feiras").filter(f => (f.vendedores || []).includes(eu));
+  S.relatoriosFeira = R("relatoriosFeira").filter(r => r.Vendedor === eu);
   return S;
 }
 
@@ -276,6 +279,49 @@ function validaTarefa(d) {
 function validaConclusaoTarefa(d) {
   const erros = {};
   if (!d.resultadoNotas || !String(d.resultadoNotas).trim()) erros.resultadoNotas = "Escreva o feedback.";
+  return { ok: Object.keys(erros).length === 0, erros };
+}
+
+/* ---------- Feiras e relatórios de visita a feira ---------- */
+/* Feiras visíveis: o gestor vê todas; o vendedor vê as que lhe foram atribuídas. */
+function feirasVisiveis(feiras, sessao) {
+  if (!sessao) return [];
+  const lst = (feiras || []).slice();
+  if (sessao.perfil === "gestor") return lst;
+  return lst.filter(f => (f.vendedores || []).includes(sessao.nome));
+}
+
+/* Tarefa automática criada ao atribuir uma feira a um vendedor:
+   preencher o relatório da feira. Fica por alocar; fecha ao submeter o relatório. */
+function tarefaAutoRelatorioFeira(feira, vendedor) {
+  return {
+    tipo: "tarefa", subtipo: "relatorioFeira", origem: "auto:feira",
+    descricao: "Preencher relatório da feira " + (feira.nome || ""),
+    Vendedor: vendedor, feiraId: feira.id, data: null, concluida: false,
+    criadoPor: "auto", criadoEm: new Date().toISOString()
+  };
+}
+
+/* Avaliação de uma feira: nº de relatórios e média das classificações (1-5). */
+function avaliacaoFeira(relatorios, feiraId) {
+  const rel = (relatorios || []).filter(r => String(r.feiraId) === String(feiraId));
+  const cl = rel.map(r => +r.classificacao).filter(n => n >= 1 && n <= 5);
+  const media = cl.length ? Math.round((cl.reduce((a, b) => a + b, 0) / cl.length) * 10) / 10 : null;
+  return { nRelatorios: rel.length, nClassificados: cl.length, media };
+}
+
+/* Validação de uma feira (nome obrigatório). */
+function validaFeira(d) {
+  const erros = {};
+  if (!d.nome || !String(d.nome).trim()) erros.nome = "Indique o nome da feira.";
+  return { ok: Object.keys(erros).length === 0, erros };
+}
+
+/* Validação do relatório: a classificação global (1-5) é obrigatória. */
+function validaRelatorioFeira(d) {
+  const erros = {};
+  const c = +d.classificacao;
+  if (!(c >= 1 && c <= 5)) erros.classificacao = "Dê uma classificação de 1 a 5 à visita.";
   return { ok: Object.keys(erros).length === 0, erros };
 }
 
@@ -594,6 +640,6 @@ function podeVerPrecoUnitario(sessao) {
   return !!sessao && sessao.perfil === "gestor";
 }
 
-const _API = { normaliza, diasEntre, visiveis, pesquisaClientes, pesquisaCortantes, cortantesPorMedidas, recebimentosEscaloes, artigosProduzidos, listaArtigos, catalogoArtigos, listaStock, agendaTarefas, fichaCliente, dashboardClientes, dashboardVendedores, resumoProjetos, pipelineProjetos, validaMudancaEstado, patchMudancaEstado, motivosRecusa, ESTADOS_PROJETO, MOTIVOS_RECUSA, recebimentosPorCliente, recebimentosGeral, recebimentosCartoes, avisosCliente, creditoCliente, opcoesOrcamento, validaPedidoOrcamento, podeVerPrecoUnitario, tarefasVisiveis, tarefaAutoNaoAceite, validaTarefa, validaConclusaoTarefa, calendarioMes };
+const _API = { normaliza, diasEntre, visiveis, pesquisaClientes, pesquisaCortantes, cortantesPorMedidas, recebimentosEscaloes, artigosProduzidos, listaArtigos, catalogoArtigos, listaStock, agendaTarefas, fichaCliente, dashboardClientes, dashboardVendedores, resumoProjetos, pipelineProjetos, validaMudancaEstado, patchMudancaEstado, motivosRecusa, ESTADOS_PROJETO, MOTIVOS_RECUSA, recebimentosPorCliente, recebimentosGeral, recebimentosCartoes, avisosCliente, creditoCliente, opcoesOrcamento, validaPedidoOrcamento, podeVerPrecoUnitario, tarefasVisiveis, tarefaAutoNaoAceite, validaTarefa, validaConclusaoTarefa, calendarioMes, feirasVisiveis, tarefaAutoRelatorioFeira, avaliacaoFeira, validaFeira, validaRelatorioFeira };
 if (typeof module !== "undefined" && module.exports) module.exports = _API;
 if (typeof window !== "undefined") window.L = _API;
