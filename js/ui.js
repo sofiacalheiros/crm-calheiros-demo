@@ -847,7 +847,9 @@ function sheetProjeto(id) {
         ${p.DataUltimaActividade ? `<dt>Última atividade</dt><dd>${dataCompleta(p.DataUltimaActividade)} (${haDias(p.DataUltimaActividade)})</dd>` : ""}
         ${p.MotivoAnulacao ? `<dt>Motivo</dt><dd>${esc(p.MotivoAnulacao)}</dd>` : ""}
         ${p.Estado === "Não Aceite" ? `<dt>Perdido para</dt><dd>${esc(p.PerdidoPara || "Sem registo")}</dd>` : ""}
-        ${p.ObsAnulacao ? `<dt>Justificação</dt><dd>${esc(p.ObsAnulacao)}</dd>` : ""}
+        ${p.Estado === "Não Aceite" && p.PrecoConcorrente != null && p.PrecoConcorrente !== "" ? `<dt>Preço do concorrente</dt><dd>${eur(p.PrecoConcorrente)}</dd>` : ""}
+        ${p.ObsAnulacao ? `<dt>Justificação</dt><dd>${esc(p.ObsAnulacao)}${p.DataObsAnulacao ? ` <small class="muted">(introduzida em ${dataPT(p.DataObsAnulacao)})</small>` : ""}</dd>` : ""}
+        ${p.DataAnulacao ? `<dt>Data de anulação</dt><dd>${dataPT(p.DataAnulacao)}</dd>` : ""}
       </dl>
       ${p["ObservaçoesProjeto"] ? `<h2>Observações</h2><p>${esc(p["ObservaçoesProjeto"])}</p>` : ""}
       ${p.Cliente ? `<div class="actions"><button class="btn" data-ent="${esc(p.Cliente)}">Ver cliente</button></div>` : ""}
@@ -872,8 +874,9 @@ function formMudarEstado(id, estadoNovo) {
     { n: "motivo", l: "Motivo", type: "select", options: ["", ...motivos] },
     { n: "motivoOutro", l: "Qual é o motivo?", type: "text", se: d => d.motivo === "Outro" },
     ...(estadoNovo === "Não Aceite" ? [
-      { n: "perdidoPara", l: "Cliente perdido para", type: "select", options: ["", ...concorrentes, NAO_REVELA, NOVO_CONCORRENTE] },
-      { n: "perdidoParaNovo", l: "Nome do concorrente", type: "text", se: d => d.perdidoPara === NOVO_CONCORRENTE }
+      { n: "perdidoPara", l: "Perdido para", type: "select", options: ["", ...concorrentes, NAO_REVELA, NOVO_CONCORRENTE] },
+      { n: "perdidoParaNovo", l: "Nome do concorrente", type: "text", se: d => d.perdidoPara === NOVO_CONCORRENTE },
+      { n: "precoConcorrente", l: "Preço do concorrente (€)", type: "text", inputmode: "decimal", placeholder: "Opcional" }
     ] : []),
     { n: "justificacao", l: "Justificação", type: "textarea", placeholder: "O que aconteceu e como soube" }
   ] : [

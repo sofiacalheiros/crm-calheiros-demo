@@ -537,11 +537,15 @@ function patchMudancaEstado(projeto, estadoNovo, d, hojeIso, campoValor) {
   d = d || {};
   const fechado = estadoNovo === "Não Aceite" || estadoNovo === "Anulado";
   const motivo = fechado ? (d.motivo === "Outro" ? (d.motivoOutro || "").trim() : d.motivo) : null;
+  const precoNum = (d.precoConcorrente == null || d.precoConcorrente === "") ? null : +d.precoConcorrente;
   const patch = {
     Estado: estadoNovo,
     MotivoAnulacao: motivo,
     PerdidoPara: estadoNovo === "Não Aceite" ? (d.perdidoPara || null) : null,
+    PrecoConcorrente: estadoNovo === "Não Aceite" ? precoNum : null,   // preço a que o concorrente ganhou
     ObsAnulacao: (d.justificacao || "").trim(),   // vai para a coluna CDU_ObsAnulacao (já existe no ERP)
+    DataObsAnulacao: hojeIso,                      // data em que a justificação foi introduzida
+    DataAnulacao: fechado ? hojeIso : null,        // data de anulação (Não Aceite / Anulado)
     DataUltimaActividade: hojeIso
   };
   // ValorEstimado NÃO é alterado aqui — vem automático do ERP.
