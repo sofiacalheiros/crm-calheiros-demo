@@ -848,7 +848,7 @@ function sheetProjeto(id) {
         ${p.MotivoAnulacao ? `<dt>Motivo</dt><dd>${esc(p.MotivoAnulacao)}</dd>` : ""}
         ${p.Estado === "Não Aceite" ? `<dt>Perdido para</dt><dd>${esc(p.PerdidoPara || "Sem registo")}</dd>` : ""}
         ${p.Estado === "Não Aceite" && p.PrecoConcorrente != null && p.PrecoConcorrente !== "" ? `<dt>Preço do concorrente</dt><dd>${eur(p.PrecoConcorrente)}</dd>` : ""}
-        ${p.ObsAnulacao ? `<dt>Justificação</dt><dd>${esc(p.ObsAnulacao)}${p.DataObsAnulacao ? ` <small class="muted">(introduzida em ${dataPT(p.DataObsAnulacao)})</small>` : ""}</dd>` : ""}
+        ${p.ObsAnulacao ? `<dt>Justificação</dt><dd>${esc(p.ObsAnulacao)}</dd>` : ""}
         ${p.DataAnulacao ? `<dt>Data de anulação</dt><dd>${dataPT(p.DataAnulacao)}</dd>` : ""}
       </dl>
       ${p["ObservaçoesProjeto"] ? `<h2>Observações</h2><p>${esc(p["ObservaçoesProjeto"])}</p>` : ""}

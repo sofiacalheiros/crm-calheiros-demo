@@ -544,8 +544,7 @@ function patchMudancaEstado(projeto, estadoNovo, d, hojeIso, campoValor) {
     PerdidoPara: estadoNovo === "Não Aceite" ? (d.perdidoPara || null) : null,
     PrecoConcorrente: estadoNovo === "Não Aceite" ? precoNum : null,   // preço a que o concorrente ganhou
     ObsAnulacao: (d.justificacao || "").trim(),   // vai para a coluna CDU_ObsAnulacao (já existe no ERP)
-    DataObsAnulacao: hojeIso,                      // data em que a justificação foi introduzida
-    DataAnulacao: fechado ? hojeIso : null,        // data de anulação (Não Aceite / Anulado)
+    DataAnulacao: fechado ? hojeIso : null,        // data de anulação (Não Aceite / Anulado) = data da justificação
     DataUltimaActividade: hojeIso
   };
   // ValorEstimado NÃO é alterado aqui — vem automático do ERP.
