@@ -882,7 +882,7 @@ function sheetProjeto(id) {
         ${p.DataUltimaActividade ? `<dt>Última atividade</dt><dd>${dataCompleta(p.DataUltimaActividade)} (${haDias(p.DataUltimaActividade)})</dd>` : ""}
         ${p.MotivoAnulacao ? `<dt>Motivo</dt><dd>${esc(p.MotivoAnulacao)}</dd>` : ""}
         ${p.Estado === "Não Aceite" ? `<dt>Perdido para</dt><dd>${esc(p.PerdidoPara || "Sem registo")}</dd>` : ""}
-        ${p.JustificacaoEstado ? `<dt>Justificação</dt><dd>${esc(p.JustificacaoEstado)}</dd>` : ""}
+        ${p.ObsAnulacao ? `<dt>Justificação</dt><dd>${esc(p.ObsAnulacao)}</dd>` : ""}
       </dl>
       ${p["ObservaçoesProjeto"] ? `<h2>Observações</h2><p>${esc(p["ObservaçoesProjeto"])}</p>` : ""}
       ${detalhePedido(p.pedido)}

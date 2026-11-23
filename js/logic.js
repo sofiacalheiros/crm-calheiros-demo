@@ -535,7 +535,7 @@ function patchMudancaEstado(projeto, estadoNovo, d, hojeIso, campoValor) {
     Estado: estadoNovo,
     MotivoAnulacao: motivo,
     PerdidoPara: estadoNovo === "Não Aceite" ? (d.perdidoPara || null) : null,
-    JustificacaoEstado: (d.justificacao || "").trim(),
+    ObsAnulacao: (d.justificacao || "").trim(),   // vai para a coluna CDU_ObsAnulacao (já existe no ERP)
     DataUltimaActividade: hojeIso
   };
   // ValorEstimado NÃO é alterado aqui — vem automático do ERP.
