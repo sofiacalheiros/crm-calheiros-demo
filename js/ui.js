@@ -821,41 +821,6 @@ function painelMotivos() {
     <div class="perdas-grp"><h3 class="perdas-h">Para quem perdemos</h3>${barrasPerda(m.porConcorrente, "nome")}</div>
   </div>`;
 }
-/* Mostra os campos preenchidos de um pedido de orçamento (guardado em projeto.pedido).
-   Só lista o que tem valor, com rótulos legíveis. */
-const PEDIDO_CAMPOS = [
-  ["tipoProjeto", "Tipo de projeto"], ["tipoArtigo", "Tipo de artigo"],
-  ["pedOrcamento", "Pedido de orçamento"], ["pedModelo", "Pedido de modelo"], ["pedPrint", "Pedido de print"], ["pedPDF", "Pedido de PDF"], ["norma", "Norma"],
-  ["quantidade", "Quantidades"], ["formatoCaixa", "Formato da caixa"], ["tipoCaixa", "Tipo de caixa"], ["materia", "Matéria-prima"],
-  ["revestimento", "Revestimento"], ["acabamento", "Acabamento"], ["numCoresInt", "Cores (interior)"], ["numCoresExt", "Cores (exterior)"],
-  ["asaPlastico", "Asa plástica"], ["tipoAsa", "Tipo de asa"], ["corAsa", "Cor da asa"],
-  ["cordao", "Cordão"], ["cordaoTamanho", "Tamanho do cordão"], ["cordaoCor", "Cor do cordão"],
-  ["fita", "Fita"], ["janelaAcetato", "Janela com acetato"], ["aptoCongelacao", "Apto congelação"], ["variante", "Variante"],
-  ["exigPaletes", "Exigência embalamento/paletes"], ["exigOutros", "Outros (paletes)"],
-  ["enchimentoAutomatico", "Enchimento automático"], ["embalagemServico", "Embalagem de serviço"], ["fsc", "FSC"], ["tipoMercado", "Tipo de mercado"],
-  ["prodAlimentares", "Produtos alimentares"], ["contactoProdAlimentar", "Tipo de contacto alimentar"], ["prodTipoContacto", "Contacto com o alimento"],
-  ["prodArmazenamento", "Armazenamento"], ["prodTempCongelacao", "Temp. congelação"], ["prodUsoPrevisto", "Uso previsto"], ["tipoBarreira", "Tipo de barreira"], ["tipoBarreiraOutro", "Qual a barreira"],
-  ["dimensao", "Dimensão da empresa"], ["ppwr", "Requisitos PPWR"], ["condicoes", "Condições de fornecimento"],
-  ["pessoaContacto", "Pessoa de contacto"], ["contactoTelefone", "Telefone do contacto"], ["email", "Email"], ["localEntrega", "Local de entrega"],
-  ["novoOrigem", "O que trouxe o cliente"], ["novoContinuidade", "Compra com continuidade"], ["novoPotencial", "Potencial p/ mais referências"], ["novoObs", "Obs. cliente/projeto novo"],
-  ["obs", "Observações"]
-];
-function detalhePedido(pd) {
-  if (!pd || typeof pd !== "object") return "";
-  const linhas = PEDIDO_CAMPOS.map(([k, lbl]) => {
-    const v = pd[k];
-    let txt = "";
-    if (v === true) txt = "Sim";
-    else if (v === false || v == null || v === "") return "";
-    else if (Array.isArray(v)) { if (!v.length) return ""; txt = v.join(", "); }
-    else txt = String(v);
-    if (!txt.trim()) return "";
-    return `<dt>${esc(lbl)}</dt><dd>${esc(txt)}</dd>`;
-  }).filter(Boolean).join("");
-  const anexos = Array.isArray(pd.anexos) && pd.anexos.length ? `<dt>Anexos</dt><dd>${esc(pd.anexos.join(", "))}</dd>` : "";
-  if (!linhas && !anexos) return "";
-  return `<h2 style="margin-top:14px">Detalhes do pedido de orçamento</h2><dl class="facts">${linhas}${anexos}</dl>`;
-}
 function sheetProjeto(id) {
   openSheet(() => {
     const p = (S.projetos || []).find(x => String(x.id) === String(id) || String(x.Projeto) === String(id));
@@ -885,7 +850,6 @@ function sheetProjeto(id) {
         ${p.ObsAnulacao ? `<dt>Justificação</dt><dd>${esc(p.ObsAnulacao)}</dd>` : ""}
       </dl>
       ${p["ObservaçoesProjeto"] ? `<h2>Observações</h2><p>${esc(p["ObservaçoesProjeto"])}</p>` : ""}
-      ${detalhePedido(p.pedido)}
       ${p.Cliente ? `<div class="actions"><button class="btn" data-ent="${esc(p.Cliente)}">Ver cliente</button></div>` : ""}
       <h2 style="margin-top:14px">Histórico no CRM</h2>
       ${hist.length ? `<ul class="timeline">${hist.map(a => `<li>${esc(a.descricao || TIPOS_ATIV[a.tipo] || a.tipo)}<small>${esc(TIPOS_ATIV[a.tipo] || a.tipo)}, ${dataPT(a.data)}${a.Vendedor ? ", " + esc(primeiro(a.Vendedor)) : ""}</small></li>`).join("")}</ul>` : `<p class="muted">Ainda sem atividades registadas no CRM.</p>`}`;

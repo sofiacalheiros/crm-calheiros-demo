@@ -726,6 +726,37 @@ function usoPrevisto(contacto, textoAtual) {
   return t;
 }
 
-const _API = { normaliza, diasEntre, visiveis, pesquisaClientes, pesquisaCortantes, cortantesPorMedidas, recebimentosEscaloes, artigosProduzidos, listaArtigos, catalogoArtigos, listaStock, agendaTarefas, fichaCliente, dashboardClientes, dashboardVendedores, resumoProjetos, pipelineProjetos, validaMudancaEstado, patchMudancaEstado, motivosRecusa, ESTADOS_PROJETO, MOTIVOS_RECUSA, recebimentosPorCliente, recebimentosGeral, recebimentosCartoes, avisosCliente, creditoCliente, opcoesOrcamento, validaPedidoOrcamento, podeVerPrecoUnitario, normDimensao, dimensaoCliente, usoPrevisto, tarefasVisiveis, tarefaAutoNaoAceite, validaTarefa, validaConclusaoTarefa, validaReagendarTarefa, validaReuniao, agruparTarefasPorVendedor, calendarioMes, feirasVisiveis, tarefaAutoRelatorioFeira, avaliacaoFeira, validaFeira, validaRelatorioFeira };
+/* ---------- email do pedido de orçamento ----------
+   O "Pedir orçamento" NÃO cria projeto: envia um email com todas as secções
+   preenchidas para a equipa de orçamentos + o próprio vendedor. O projeto
+   nasce depois no ERP e o CRM só o monitoriza. Função pura: devolve os campos
+   do email (to, assunto, corpo); a UI (forms.js) monta o mailto e abre-o. */
+function emailPedidoOrcamento(d, campos, opts) {
+  d = d || {}; opts = opts || {};
+  const valor = v => {
+    if (v === true) return "Sim";
+    if (v === false || v == null || v === "") return "";
+    if (Array.isArray(v)) return v.length ? v.join(", ") : "";
+    return String(v).trim();
+  };
+  const linhas = [];
+  for (const c of (campos || [])) {
+    if (c.sec) { linhas.push("", "== " + c.sec + " =="); continue; }
+    if (!c.n) continue;
+    const txt = valor(d[c.n]);
+    if (!txt) continue;
+    const lbl = typeof c.l === "function" ? c.l(d) : c.l;
+    linhas.push(lbl + ": " + txt);
+  }
+  if (Array.isArray(d.anexos) && d.anexos.length) linhas.push("Anexos: " + d.anexos.join(", "));
+  const cli = valor(d.clienteNome) || valor(d.novoCliente) || "Cliente novo";
+  const resumo = (valor(d.tipoCaixa) || valor(d.descricao) || "Pedido").slice(0, 60);
+  const assunto = "Pedido de orçamento — " + cli + (resumo ? " — " + resumo : "");
+  const corpo = "Novo pedido de orçamento (via CRM):\n" + linhas.join("\n");
+  const to = [opts.orcamentos, opts.vendedor].filter(Boolean).join(",");
+  return { to, assunto, corpo };
+}
+
+const _API = { normaliza, diasEntre, visiveis, pesquisaClientes, pesquisaCortantes, cortantesPorMedidas, recebimentosEscaloes, artigosProduzidos, listaArtigos, catalogoArtigos, listaStock, agendaTarefas, fichaCliente, dashboardClientes, dashboardVendedores, resumoProjetos, pipelineProjetos, validaMudancaEstado, patchMudancaEstado, motivosRecusa, ESTADOS_PROJETO, MOTIVOS_RECUSA, recebimentosPorCliente, recebimentosGeral, recebimentosCartoes, avisosCliente, creditoCliente, opcoesOrcamento, validaPedidoOrcamento, emailPedidoOrcamento, podeVerPrecoUnitario, normDimensao, dimensaoCliente, usoPrevisto, tarefasVisiveis, tarefaAutoNaoAceite, validaTarefa, validaConclusaoTarefa, validaReagendarTarefa, validaReuniao, agruparTarefasPorVendedor, calendarioMes, feirasVisiveis, tarefaAutoRelatorioFeira, avaliacaoFeira, validaFeira, validaRelatorioFeira };
 if (typeof module !== "undefined" && module.exports) module.exports = _API;
 if (typeof window !== "undefined") window.L = _API;

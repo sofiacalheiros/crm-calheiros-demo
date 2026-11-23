@@ -11,6 +11,7 @@
 const FONTE_DADOS = "local";                      // "local" (dados de exemplo) | "rest" (API do IT)
 const API_BASE = "https://api.empresa.pt/crm";    // usado só com "rest"
 const CAMPO_VALOR = "ValorEstimado";              // campo do ERP com o valor estimado da venda (€, sem IVA). CONFIRMAR com o IT.
+const EMAIL_ORCAMENTOS = "orcamentos@calheiros.pt"; // destino do "Pedir orçamento" (enviado também ao próprio vendedor)
 
 /* Coleções carregadas pela app (nomes alinhados com o ERP / dados-exemplo.js).
    Nota: "contactos" existe nos dados de exemplo mas o ecrã de contactos ainda
@@ -18,5 +19,5 @@ const CAMPO_VALOR = "ValorEstimado";              // campo do ERP com o valor es
 const COLECOES = ["vendedores", "clientes", "projetos", "vendas", "pendentes", "atividades", "producao", "cortantes", "artigos", "stock", "seguroCredito", "concorrentes", "feiras", "relatoriosFeira"];
 
 if (typeof module !== "undefined" && module.exports) {
-  module.exports = { FONTE_DADOS, API_BASE, CAMPO_VALOR, COLECOES };
+  module.exports = { FONTE_DADOS, API_BASE, CAMPO_VALOR, EMAIL_ORCAMENTOS, COLECOES };
 }

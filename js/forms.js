@@ -601,16 +601,15 @@ function formPedidoOrcamento(preset) {
   abrirForm("Pedir orçamento", campos, valores, async d => {
     const val = L.validaPedidoOrcamento(d);
     if (!val.ok) return { erros: val.erros };
-    const resumo = (d.tipoCaixa || d.descricao || "Pedido").toString().slice(0, 60);
-    const nomeCli = d.cliente ? cliNome(d.cliente) : (String(d.novoCliente || d.clienteNome || "").trim() || "Cliente novo");
-    await Store.add("projetos", {
-      DescricaoProjeto: "PO (CRM) " + resumo, Cliente: d.cliente || null, Nome: nomeCli,
-      Estado: "Pendente", Vendedor: meNome, origem: "crm",
-      CodigoProjeto: d.codigoProjeto || null,   // código para associar ao iPortal
-      "ObservaçoesProjeto": [d.artigo, d.descricao].filter(Boolean).join(" - "),
-      DataUltimaActividade: isoHoje(),
-      pedido: d   // guarda todos os campos do pedido
+    // NÃO cria projeto: o pedido vai por email para a equipa de orçamentos + o
+    // próprio vendedor. O projeto nasce depois no ERP (o CRM só o monitoriza).
+    const em = L.emailPedidoOrcamento(d, campos, {
+      orcamentos: (typeof EMAIL_ORCAMENTOS !== "undefined" && EMAIL_ORCAMENTOS) || "",
+      vendedor: (sessao && sessao.email) || ""
     });
-    closeSheet(); toast("Pedido de orçamento criado (fica pendente).");
+    const mailto = "mailto:" + em.to + "?subject=" + encodeURIComponent(em.assunto) + "&body=" + encodeURIComponent(em.corpo);
+    closeSheet();
+    toast("Pedido pronto — a abrir o email para enviar.");
+    try { location.href = mailto; } catch (_) { }
   });
 }
