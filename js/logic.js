@@ -308,13 +308,19 @@ function validaConclusaoTarefa(d) {
   return { ok: Object.keys(erros).length === 0, erros };
 }
 
-/* Reunião: exige título e data. "Equipa" (todos) dispensa participantes;
-   "individual" exige pelo menos um vendedor escolhido. */
+/* Reunião: exige título e data.
+   - Vendedor (comCliente): reunião com um cliente da sua carteira → exige cliente.
+   - Gestão: "Equipa" (todos) dispensa participantes; "individual" exige pelo
+     menos um vendedor escolhido. */
 function validaReuniao(d) {
   const erros = {};
   if (!d.titulo || !String(d.titulo).trim()) erros.titulo = "Dê um título à reunião.";
   if (!d.data) erros.data = "Escolha a data.";
-  if (!d.equipa && (!d.participantes || !d.participantes.length)) erros.participantes = "Escolha quem participa.";
+  if (d.comCliente) {
+    if (!d.cliente) erros.cliente = "Escolha o cliente.";
+  } else if (!d.equipa && (!d.participantes || !d.participantes.length)) {
+    erros.participantes = "Escolha quem participa.";
+  }
   return { ok: Object.keys(erros).length === 0, erros };
 }
 

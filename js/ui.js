@@ -520,7 +520,7 @@ function calendarioHTML(cal, mostrarVend) {
 }
 
 function rowReuniao(r) {
-  const quem = r.equipa ? "Toda a equipa" : (r.participantes || []).map(primeiro).join(", ");
+  const quem = r.equipa ? "Toda a equipa" : ((r.participantes || []).length ? (r.participantes || []).map(primeiro).join(", ") : (r.Nome || cliNome(r.Entidade) || ""));
   const quando = dataPT(r.data) + (r.hora ? " · " + esc(r.hora) : "");
   return `<div class="row reuniao-row"><span class="dot-reuniao"></span>
     <span class="grow" data-act="verReuniao" data-id="${esc(r.id)}"><span class="t">${esc(r.titulo || "Reunião")}</span><span class="s">${quando} · ${esc(quem)}${r.descricao ? " · " + esc(r.descricao) : ""}</span></span></div>`;
@@ -639,7 +639,7 @@ function sheetReuniao(id) {
   const r = (S.atividades || []).find(a => String(a.id) === String(id) && a.tipo === "reuniao");
   if (!r) return;
   openSheet(() => {
-    const quem = r.equipa ? "Toda a equipa" : (r.participantes || []).join(", ");
+    const quem = r.equipa ? "Toda a equipa" : ((r.participantes || []).length ? (r.participantes || []).join(", ") : (r.Nome || cliNome(r.Entidade) || ""));
     const quando = dataPT(r.data) + (r.hora ? " · " + esc(r.hora) : "");
     const info = [["Quando", quando], ["Participantes", quem]];
     if (r.criadoPor) info.push(["Marcada por", r.criadoPor]);

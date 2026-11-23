@@ -274,29 +274,50 @@ function formReagendar(id) {
   });
 }
 
-/* Marcar reunião: aparece no calendário (a amarelo). Pode ser de toda a
-   equipa ou só com vendedores escolhidos. */
+/* Marcar reunião: aparece no calendário (a amarelo).
+   - Vendedor: reunião com um CLIENTE da sua carteira; fica SÓ no calendário dele
+     (não pode marcar "toda a equipa" nem com colegas).
+   - Gestão: reunião de toda a equipa ou com vendedores específicos. */
 function formReuniao(preset) {
   preset = preset || {};
-  const campos = [
+  const souGestor = typeof ehGestor === "function" && ehGestor();
+  const campos = souGestor ? [
     { n: "titulo", l: "Assunto da reunião", type: "text", placeholder: "Ex.: Reunião de equipa mensal" },
     { n: "data", l: "Data", type: "date" },
     { n: "hora", l: "Hora (opcional)", type: "time" },
     { n: "ambito", l: "Quem participa", type: "select", options: [{ v: "equipa", l: "Toda a equipa" }, { v: "individual", l: "Vendedores específicos" }] },
     { n: "participantes", l: "Vendedores", type: "checklist", options: (S.vendedores || []).map(v => v.nome), se: d => d.ambito === "individual" },
     { n: "descricao", l: "Notas (opcional)", type: "textarea", placeholder: "Ordem de trabalhos, local ou link…" }
+  ] : [
+    { n: "titulo", l: "Assunto da reunião", type: "text", placeholder: "Ex.: Apresentação de amostra" },
+    { n: "data", l: "Data", type: "date" },
+    { n: "hora", l: "Hora (opcional)", type: "time" },
+    { n: "cliente", l: "Cliente", type: "select", options: ["", ...(S.clientes || []).map(c => c.Nome).sort((a, b) => a.localeCompare(b, "pt"))] },
+    { n: "descricao", l: "Notas (opcional)", type: "textarea", placeholder: "Ordem de trabalhos, local ou link…" }
   ];
   const valores = { ambito: "equipa", data: preset.data || isoHoje(), hora: "", participantes: [], ...preset };
   abrirForm("Nova reunião", campos, valores, async d => {
-    const equipa = d.ambito === "equipa";
-    const val = L.validaReuniao({ titulo: d.titulo, data: d.data, equipa, participantes: d.participantes });
-    if (!val.ok) return { erros: val.erros };
-    const participantes = equipa ? (S.vendedores || []).map(v => v.nome) : (d.participantes || []);
-    await Store.add("atividades", {
-      tipo: "reuniao", titulo: d.titulo.trim(), descricao: (d.descricao || "").trim(),
-      data: d.data, hora: d.hora || "", equipa, participantes,
-      criadoPor: meNome || "", criadoEm: new Date().toISOString()
-    });
+    if (souGestor) {
+      const equipa = d.ambito === "equipa";
+      const val = L.validaReuniao({ titulo: d.titulo, data: d.data, equipa, participantes: d.participantes });
+      if (!val.ok) return { erros: val.erros };
+      const participantes = equipa ? (S.vendedores || []).map(v => v.nome) : (d.participantes || []);
+      await Store.add("atividades", {
+        tipo: "reuniao", titulo: d.titulo.trim(), descricao: (d.descricao || "").trim(),
+        data: d.data, hora: d.hora || "", equipa, participantes,
+        criadoPor: meNome || "", criadoEm: new Date().toISOString()
+      });
+    } else {
+      const c = (S.clientes || []).find(x => String(x.Nome).toLowerCase() === String(d.cliente || "").trim().toLowerCase());
+      const val = L.validaReuniao({ titulo: d.titulo, data: d.data, comCliente: true, cliente: c ? c.id : "" });
+      if (!val.ok) return { erros: val.erros };
+      await Store.add("atividades", {
+        tipo: "reuniao", titulo: d.titulo.trim(), descricao: (d.descricao || "").trim(),
+        data: d.data, hora: d.hora || "", equipa: false, participantes: [],
+        Entidade: c.id, Nome: c.Nome, Vendedor: meNome, criadoPor: meNome || "",
+        criadoEm: new Date().toISOString()
+      });
+    }
     closeSheet(); toast("Reunião marcada.");
   });
 }
