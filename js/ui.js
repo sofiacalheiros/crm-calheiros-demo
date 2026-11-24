@@ -58,6 +58,14 @@ function iniciarDados() {
       render();
     }, () => { });
   });
+  // Listas do pedido de orçamento que vêm de tabelas do ERP (só em modo "rest";
+  // em modo local os dropdowns usam as opções de exemplo — ver LISTAS_ERP em config.js).
+  window.LISTAS_ERP_DADOS = window.LISTAS_ERP_DADOS || {};
+  if (FONTE_DADOS === "rest" && typeof LISTAS_ERP !== "undefined") {
+    Object.entries(LISTAS_ERP).forEach(([nome, cfg]) => {
+      Store.subscribe(cfg.endpoint, rows => { window.LISTAS_ERP_DADOS[nome] = rows; render(); }, () => { });
+    });
+  }
   render();
 }
 

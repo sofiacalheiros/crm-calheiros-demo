@@ -675,6 +675,18 @@ function opcoesOrcamento(vendas, cortantes) {
   return { materiasPrimas, tiposCaixa };
 }
 
+/* ---------- opções de uma lista que, nos dados reais, vem de uma tabela do ERP ----------
+   (Matéria-prima, Tipo de caixa, Revestimento, Acabamento — tabelas PR_MOBILIDADE_* ; ver LISTAS_ERP em config.js.)
+   Se houver dados do ERP, usa-os ("" + descrições únicas, pela ordem recebida); senão, usa a lista de recurso (modo local). */
+function opcoesLista(dadosErp, fallback) {
+  const rows = (dadosErp || []).filter(r => r != null && r !== "");
+  if (!rows.length) return fallback;
+  const rotulo = r => typeof r === "string" ? r
+    : (r.Descricao || r.descricao || r.Nome || r.nome || r.valor || r.Valor || r.Codigo || r.codigo || "");
+  const opts = [...new Set(rows.map(rotulo).filter(Boolean))];
+  return opts.length ? ["", ...opts] : fallback;
+}
+
 /* ---------- validação do pedido de orçamento ---------- */
 function validaPedidoOrcamento(d) {
   const erros = {};
@@ -766,6 +778,6 @@ function emailPedidoOrcamento(d, campos, opts) {
   return { to, assunto, corpo };
 }
 
-const _API = { normaliza, diasEntre, visiveis, pesquisaClientes, pesquisaCortantes, cortantesPorMedidas, recebimentosEscaloes, artigosProduzidos, listaArtigos, catalogoArtigos, listaStock, agendaTarefas, fichaCliente, dashboardClientes, dashboardVendedores, resumoProjetos, pipelineProjetos, validaMudancaEstado, patchMudancaEstado, motivosRecusa, ESTADOS_PROJETO, MOTIVOS_RECUSA, recebimentosPorCliente, recebimentosGeral, recebimentosCartoes, avisosCliente, creditoCliente, opcoesOrcamento, validaPedidoOrcamento, emailPedidoOrcamento, podeVerPrecoUnitario, normDimensao, dimensaoCliente, usoPrevisto, tarefasVisiveis, tarefaAutoNaoAceite, validaTarefa, validaConclusaoTarefa, validaReagendarTarefa, validaReuniao, agruparTarefasPorVendedor, calendarioMes, feirasVisiveis, tarefaAutoRelatorioFeira, avaliacaoFeira, validaFeira, validaRelatorioFeira };
+const _API = { normaliza, diasEntre, visiveis, pesquisaClientes, pesquisaCortantes, cortantesPorMedidas, recebimentosEscaloes, artigosProduzidos, listaArtigos, catalogoArtigos, listaStock, agendaTarefas, fichaCliente, dashboardClientes, dashboardVendedores, resumoProjetos, pipelineProjetos, validaMudancaEstado, patchMudancaEstado, motivosRecusa, ESTADOS_PROJETO, MOTIVOS_RECUSA, recebimentosPorCliente, recebimentosGeral, recebimentosCartoes, avisosCliente, creditoCliente, opcoesOrcamento, opcoesLista, validaPedidoOrcamento, emailPedidoOrcamento, podeVerPrecoUnitario, normDimensao, dimensaoCliente, usoPrevisto, tarefasVisiveis, tarefaAutoNaoAceite, validaTarefa, validaConclusaoTarefa, validaReagendarTarefa, validaReuniao, agruparTarefasPorVendedor, calendarioMes, feirasVisiveis, tarefaAutoRelatorioFeira, avaliacaoFeira, validaFeira, validaRelatorioFeira };
 if (typeof module !== "undefined" && module.exports) module.exports = _API;
 if (typeof window !== "undefined") window.L = _API;

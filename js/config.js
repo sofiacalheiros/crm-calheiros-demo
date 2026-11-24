@@ -18,6 +18,19 @@ const EMAIL_ORCAMENTOS = "orcamentos@calheiros.pt"; // destino do "Pedir orçame
    não está construído, por isso não está nesta lista (fica para uma próxima versão). */
 const COLECOES = ["vendedores", "clientes", "projetos", "vendas", "pendentes", "atividades", "producao", "cortantes", "artigos", "stock", "seguroCredito", "concorrentes", "feiras", "relatoriosFeira"];
 
+/* Listas do "Pedir orçamento" que, nos dados reais, vêm de tabelas do PRIMAVERA
+   (nomes confirmados pelo IT em 2026-11-24). Para cada uma: o `endpoint` que a app
+   chama em modo "rest" e a `tabela` do ERP de onde o IT alimenta esse endpoint.
+   - Modo "local": usam-se as opções de exemplo (derivadas dos dados fictícios / listas fixas).
+   - Modo "rest": a app vai buscar as opções ao endpoint → tabela indicada abaixo.
+   (É aqui que fica "escrito no código" de onde vem cada lista.) */
+const LISTAS_ERP = {
+  materiaPrima: { endpoint: "listas/materia-prima", tabela: "PR_MOBILIDADE_MatPrima" },
+  tipoCaixa:    { endpoint: "listas/tipo-caixa",    tabela: "PR_MOBILIDADE_TipoCaixa" },
+  revestimento: { endpoint: "listas/revestimento",  tabela: "PR_MOBILIDADE_Revestimento" },
+  acabamento:   { endpoint: "listas/acabamento",    tabela: "PR_MOBILIDADE_Acabamento" }
+};
+
 if (typeof module !== "undefined" && module.exports) {
-  module.exports = { FONTE_DADOS, API_BASE, CAMPO_VALOR, EMAIL_ORCAMENTOS, COLECOES };
+  module.exports = { FONTE_DADOS, API_BASE, CAMPO_VALOR, EMAIL_ORCAMENTOS, COLECOES, LISTAS_ERP };
 }

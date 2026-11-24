@@ -487,6 +487,7 @@ function formRelatorioFeira(feiraId) {
 function formPedidoOrcamento(preset) {
   preset = preset || {};
   const op = L.opcoesOrcamento(S.vendas || [], S.cortantes || []);
+  const LE = (typeof window !== "undefined" && window.LISTAS_ERP_DADOS) || {}; // listas vindas do ERP (modo "rest")
   // pré-preenchimento a partir de um artigo
   let pre = {};
   if (preset.cliente && preset.artigo) {
@@ -563,10 +564,10 @@ function formPedidoOrcamento(preset) {
     { n: "descricao", l: "Descrição / o que pretende", type: "textarea", placeholder: "Medidas, cores, detalhes…" },
     { n: "quantidade", l: "Quantidades", type: "text", inputmode: "numeric", placeholder: "ex.: 1000, 5000" },
     { n: "formatoCaixa", l: "Formato da caixa (C x L x A)", type: "text" },
-    { n: "tipoCaixa", l: "Tipo de caixa", type: "select", options: ["", ...op.tiposCaixa] },
-    { n: "materia", l: "Matéria-prima", type: "select", options: ["", ...op.materiasPrimas] },
-    { n: "revestimento", l: "Revestimento", type: "select", options: REVESTIMENTOS },
-    { n: "acabamento", l: "Acabamento", type: "select", options: ACABAMENTOS },
+    { n: "tipoCaixa", l: "Tipo de caixa", type: "select", options: L.opcoesLista(LE.tipoCaixa, ["", ...op.tiposCaixa]) },
+    { n: "materia", l: "Matéria-prima", type: "select", options: L.opcoesLista(LE.materiaPrima, ["", ...op.materiasPrimas]) },
+    { n: "revestimento", l: "Revestimento", type: "select", options: L.opcoesLista(LE.revestimento, REVESTIMENTOS) },
+    { n: "acabamento", l: "Acabamento", type: "select", options: L.opcoesLista(LE.acabamento, ACABAMENTOS) },
     { n: "numCoresInt", l: "Nº de cores (interior)", type: "text", inputmode: "numeric" },
     { n: "numCoresExt", l: "Nº de cores (exterior)", type: "text", inputmode: "numeric" },
     { n: "asaPlastico", l: "Asa plástica", type: "checkbox" },
